@@ -43,7 +43,10 @@ public:
     int getUserId(const string& username);
     string getUsername(int user_id);
     bool setUserOnline(int user_id, bool is_online);
+    bool isUserOnline(int user_id);
+    void resetAllUsersOffline();  // Reset all users to offline on server start
     bool updateLastLogin(int user_id);
+    bool changePassword(int user_id, const string& old_password, const string& new_password);
     
     // Session/Token operations
     string createSession(int user_id);

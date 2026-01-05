@@ -175,6 +175,48 @@ void handle_login(int client_socket, const map<string, string>& body) {
     }
 }
 
+// ===== PASSWORD CHANGE HANDLER =====
+
+void handle_change_password(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string old_password = body.count("old_password") ? body.at("old_password") : "";
+    string new_password = body.count("new_password") ? body.at("new_password") : "";
+    
+    if (old_password.empty() || new_password.empty()) {
+        map<string, string> resp;
+        resp["message"] = "Missing old or new password";
+        send_packet(client_socket, S_RESP_CHANGE_PASS, STATUS_BAD_REQUEST, 
+                   JsonHelper::build(resp));
+        return;
+    }
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Invalid token";
+        send_packet(client_socket, S_RESP_CHANGE_PASS, STATUS_UNAUTHORIZED, 
+                   JsonHelper::build(resp));
+        return;
+    }
+    
+    bool success = db->changePassword(user_id, old_password, new_password);
+    pthread_mutex_unlock(&db_mutex);
+    
+    map<string, string> resp;
+    if (success) {
+        resp["message"] = "Password changed successfully";
+        send_packet(client_socket, S_RESP_CHANGE_PASS, STATUS_OK, 
+                   JsonHelper::build(resp));
+        cout << "✓ Password changed for user_id: " << user_id << endl;
+    } else {
+        resp["message"] = "Old password is incorrect";
+        send_packet(client_socket, S_RESP_CHANGE_PASS, STATUS_UNAUTHORIZED, 
+                   JsonHelper::build(resp));
+    }
+}
+
 // ===== FRIEND HANDLERS =====
 
 void handle_friend_add(int client_socket, const map<string, string>& body) {
@@ -576,6 +618,62 @@ void handle_group_leave(int client_socket, const map<string, string>& body) {
     cout << "✓ User " << username << " left group " << group_name << endl;
 }
 
+void handle_group_members(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string group_id_str = body.count("group_id") ? body.at("group_id") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        send_packet(client_socket, S_RESP_GROUP_MEMBERS, STATUS_UNAUTHORIZED, 
+                   "{\"error\":\"Invalid token\"}");
+        return;
+    }
+    
+    int group_id = atoi(group_id_str.c_str());
+    if (group_id <= 0) {
+        pthread_mutex_unlock(&db_mutex);
+        send_packet(client_socket, S_RESP_GROUP_MEMBERS, STATUS_BAD_REQUEST,
+                   "{\"error\":\"Invalid group_id\"}");
+        return;
+    }
+    
+    // Check if user is member
+    if (!db->isGroupMember(group_id, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        send_packet(client_socket, S_RESP_GROUP_MEMBERS, STATUS_FORBIDDEN,
+                   "{\"error\":\"Not a member\"}");
+        return;
+    }
+    
+    // Get all members
+    vector<int> member_ids = db->getGroupMembers(group_id);
+    string group_name = db->getGroupName(group_id);
+    
+    // Build members list with online status
+    string members_json = "[";
+    for (size_t i = 0; i < member_ids.size(); i++) {
+        string member_name = db->getUsername(member_ids[i]);
+        bool is_online = db->isUserOnline(member_ids[i]);
+        
+        if (i > 0) members_json += ",";
+        members_json += "{\"username\":\"" + member_name + "\",\"online\":" + (is_online ? "true" : "false") + "}";
+    }
+    members_json += "]";
+    
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Build JSON manually to avoid escaping the members array
+    string response_json = "{\"group_id\":\"" + group_id_str + 
+                           "\",\"group_name\":\"" + group_name + 
+                           "\",\"members\":" + members_json + "}";
+    
+    send_packet(client_socket, S_RESP_GROUP_MEMBERS, STATUS_OK, response_json);
+    
+    cout << "✓ Sent member list for group " << group_name << " (" << member_ids.size() << " members)" << endl;
+}
+
 void handle_msg_private(int client_socket, const map<string, string>& body) {
     string token = body.count("token") ? body.at("token") : "";
     string target_username = body.count("target_username") ? body.at("target_username") : "";
@@ -720,6 +818,9 @@ void* handle_client(void* arg) {
             case C_REQ_LOGIN:
                 handle_login(client_socket, body);
                 break;
+            case C_REQ_CHANGE_PASS:
+                handle_change_password(client_socket, body);
+                break;
             case C_REQ_GROUP_CREATE:
                 handle_group_create(client_socket, body);
                 break;
@@ -731,6 +832,9 @@ void* handle_client(void* arg) {
                 break;
             case C_REQ_GROUP_LIST:
                 handle_group_list(client_socket, body);
+                break;
+            case C_REQ_GROUP_MEMBERS:
+                handle_group_members(client_socket, body);
                 break;
             case C_REQ_FRIEND_ADD:
                 handle_friend_add(client_socket, body);
@@ -823,6 +927,10 @@ int main(int argc, char* argv[]) {
     
     // Clean expired sessions
     db->cleanExpiredSessions();
+    
+    // Reset all users to offline on server start
+    db->resetAllUsersOffline();
+    cout << "✓ Reset all users to offline" << endl;
     
     // Create server socket
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);

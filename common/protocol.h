@@ -25,6 +25,8 @@
 #define S_RESP_LOGIN        102   // Server phản hồi đăng nhập
 #define C_REQ_REGISTER      103   // Client yêu cầu đăng ký
 #define S_RESP_REGISTER     104   // Server xác nhận đăng ký
+#define C_REQ_CHANGE_PASS   105   // Client yêu cầu đổi mật khẩu
+#define S_RESP_CHANGE_PASS  106   // Server phản hồi đổi mật khẩu
 
 // ===== NHÓM TRẠNG THÁI (2xx) =====
 #define S_NOTIFY_FRIEND_ONLINE  201   // Server báo bạn bè online
@@ -57,6 +59,8 @@
 #define S_NOTIFY_MSG_GROUP  508   // Server broadcast tin nhắn cho các thành viên
 #define C_REQ_GROUP_LIST    509   // Client yêu cầu danh sách nhóm đã tham gia
 #define S_RESP_GROUP_LIST   510   // Server trả về danh sách nhóm
+#define C_REQ_GROUP_MEMBERS 511   // Client yêu cầu danh sách thành viên nhóm
+#define S_RESP_GROUP_MEMBERS 512  // Server trả về danh sách thành viên nhóm
 
 // ===== NHÓM CHIA SẺ FILE (6xx) =====
 #define C_REQ_FILE_UPLOAD   601   // Client "xin phép" được tải file lên

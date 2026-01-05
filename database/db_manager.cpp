@@ -148,10 +148,62 @@ bool DBManager::setUserOnline(int user_id, bool is_online) {
     return true;
 }
 
+bool DBManager::isUserOnline(int user_id) {
+    string query = "SELECT is_online FROM users WHERE user_id=" + to_string(user_id);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return false;
+    }
+    
+    MYSQL_RES *result = mysql_store_result(conn);
+    if (!result) return false;
+    
+    MYSQL_ROW row = mysql_fetch_row(result);
+    bool online = (row && row[0] && string(row[0]) == "1");
+    mysql_free_result(result);
+    return online;
+}
+
+void DBManager::resetAllUsersOffline() {
+    string query = "UPDATE users SET is_online=0";
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+    }
+}
+
 bool DBManager::updateLastLogin(int user_id) {
     string query = "UPDATE users SET last_login=NOW() WHERE user_id=" + to_string(user_id);
     
     if (mysql_query(conn, query.c_str())) {
+        printError();
+        return false;
+    }
+    return true;
+}
+
+bool DBManager::changePassword(int user_id, const string& old_password, const string& new_password) {
+    // First verify old password
+    string verify_query = "SELECT user_id FROM users WHERE user_id=" + to_string(user_id) +
+                         " AND password_hash='" + escapeString(old_password) + "'";
+    
+    if (mysql_query(conn, verify_query.c_str())) {
+        printError();
+        return false;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    if (mysql_num_rows(result) == 0) {
+        mysql_free_result(result);
+        return false;  // Old password is incorrect
+    }
+    mysql_free_result(result);
+    
+    // Update to new password
+    string update_query = "UPDATE users SET password_hash='" + escapeString(new_password) +
+                         "' WHERE user_id=" + to_string(user_id);
+    
+    if (mysql_query(conn, update_query.c_str())) {
         printError();
         return false;
     }
