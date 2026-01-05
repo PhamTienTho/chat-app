@@ -35,6 +35,12 @@
 #define S_NOTIFY_FRIEND_REQ     302   // Server báo u5 biết u1 muốn kết bạn
 #define C_RESP_FRIEND_REQ       303   // Client (u5) phản hồi lời mời
 #define S_NOTIFY_FRIEND_ACCEPT  304   // Server báo u1 biết u5 đã đồng ý
+#define C_REQ_FRIEND_LIST       305   // Client yêu cầu danh sách bạn bè
+#define S_RESP_FRIEND_LIST      306   // Server trả về danh sách bạn bè
+#define C_REQ_PENDING_REQUESTS  307   // Client yêu cầu danh sách lời mời chờ
+#define S_RESP_PENDING_REQUESTS 308   // Server trả về danh sách lời mời chờ
+#define C_REQ_UNFRIEND          309   // Client yêu cầu hủy kết bạn
+#define S_RESP_UNFRIEND         310   // Server phản hồi hủy kết bạn
 
 // ===== NHÓM CHAT 1-1 (4xx) =====
 #define C_REQ_MSG_PRIVATE   401   // Client gửi tin nhắn 1-1 (FC03)
@@ -49,6 +55,8 @@
 #define S_NOTIFY_GROUP_LEAVE 506  // Server báo các thành viên là u1 đã rời nhóm
 #define C_REQ_MSG_GROUP     507   // Client gửi tin nhắn vào nhóm (FC08)
 #define S_NOTIFY_MSG_GROUP  508   // Server broadcast tin nhắn cho các thành viên
+#define C_REQ_GROUP_LIST    509   // Client yêu cầu danh sách nhóm đã tham gia
+#define S_RESP_GROUP_LIST   510   // Server trả về danh sách nhóm
 
 // ===== NHÓM CHIA SẺ FILE (6xx) =====
 #define C_REQ_FILE_UPLOAD   601   // Client "xin phép" được tải file lên

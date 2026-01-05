@@ -64,6 +64,7 @@ public:
     int createGroup(const string& group_name, int creator_id);
     bool addGroupMember(int group_id, int user_id, const string& role = "member");
     bool removeGroupMember(int group_id, int user_id);
+    bool deleteGroup(int group_id);
     bool isGroupMember(int group_id, int user_id);
     vector<int> getGroupMembers(int group_id);
     vector<map<string, string>> getUserGroups(int user_id);

@@ -175,6 +175,200 @@ void handle_login(int client_socket, const map<string, string>& body) {
     }
 }
 
+// ===== FRIEND HANDLERS =====
+
+void handle_friend_add(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string target_username = body.count("target_username") ? body.at("target_username") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    int target_id = db->getUserId(target_username);
+    if (target_id == -1) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    // Không thể tự kết bạn với chính mình
+    if (target_id == user_id) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    // Kiểm tra đã là bạn chưa
+    if (db->areFriends(user_id, target_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    string from_username = db->getUsername(user_id);
+    
+    // Gửi lời mời kết bạn
+    db->sendFriendRequest(user_id, target_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Thông báo cho target nếu online
+    pthread_mutex_lock(&clients_mutex);
+    if (username_to_socket.count(target_username)) {
+        int target_socket = username_to_socket[target_username];
+        pthread_mutex_unlock(&clients_mutex);
+        
+        map<string, string> notify;
+        notify["from_username"] = from_username;
+        send_packet(target_socket, S_NOTIFY_FRIEND_REQ, STATUS_OK, 
+                   JsonHelper::build(notify));
+    } else {
+        pthread_mutex_unlock(&clients_mutex);
+    }
+    
+    cout << "✓ Friend request: " << from_username << " -> " << target_username << endl;
+}
+
+void handle_friend_response(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string from_username = body.count("from_username") ? body.at("from_username") : "";
+    string action = body.count("action") ? body.at("action") : "";  // "accept" or "reject"
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    int from_id = db->getUserId(from_username);
+    if (from_id == -1) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    string my_username = db->getUsername(user_id);
+    
+    if (action == "accept") {
+        db->acceptFriendRequest(from_id, user_id);
+        pthread_mutex_unlock(&db_mutex);
+        
+        // Thông báo cho người gửi lời mời nếu online
+        pthread_mutex_lock(&clients_mutex);
+        if (username_to_socket.count(from_username)) {
+            int from_socket = username_to_socket[from_username];
+            pthread_mutex_unlock(&clients_mutex);
+            
+            map<string, string> notify;
+            notify["username"] = my_username;
+            send_packet(from_socket, S_NOTIFY_FRIEND_ACCEPT, STATUS_OK, 
+                       JsonHelper::build(notify));
+        } else {
+            pthread_mutex_unlock(&clients_mutex);
+        }
+        
+        cout << "✓ Friend request accepted: " << from_username << " <-> " << my_username << endl;
+    } else {
+        db->rejectFriendRequest(from_id, user_id);
+        pthread_mutex_unlock(&db_mutex);
+        cout << "✓ Friend request rejected: " << from_username << " -> " << my_username << endl;
+    }
+}
+
+void handle_friend_list(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    vector<string> friends = db->getFriends(user_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Build JSON response với trạng thái online
+    string json_resp = "{\"friends\":[";
+    for (size_t i = 0; i < friends.size(); i++) {
+        if (i > 0) json_resp += ",";
+        
+        // Kiểm tra online status
+        pthread_mutex_lock(&clients_mutex);
+        bool is_online = username_to_socket.count(friends[i]) > 0;
+        pthread_mutex_unlock(&clients_mutex);
+        
+        json_resp += "{\"username\":\"" + friends[i] + "\",\"online\":" + (is_online ? "true" : "false") + "}";
+    }
+    json_resp += "]}";
+    
+    send_packet(client_socket, S_RESP_FRIEND_LIST, STATUS_OK, json_resp);
+}
+
+void handle_pending_requests(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    vector<string> pending = db->getPendingFriendRequests(user_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Build JSON response
+    string json_resp = "{\"pending\":[";
+    for (size_t i = 0; i < pending.size(); i++) {
+        if (i > 0) json_resp += ",";
+        json_resp += "\"" + pending[i] + "\"";
+    }
+    json_resp += "]}";
+    
+    send_packet(client_socket, S_RESP_PENDING_REQUESTS, STATUS_OK, json_resp);
+}
+
+void handle_unfriend(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string friend_username = body.count("friend_username") ? body.at("friend_username") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Token không hợp lệ";
+        send_packet(client_socket, S_RESP_UNFRIEND, STATUS_UNAUTHORIZED, JsonHelper::build(resp));
+        return;
+    }
+    
+    int friend_id = db->getUserId(friend_username);
+    if (friend_id == -1) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Không tìm thấy user";
+        send_packet(client_socket, S_RESP_UNFRIEND, STATUS_NOT_FOUND, JsonHelper::build(resp));
+        return;
+    }
+    
+    // Sử dụng rejectFriendRequest để xóa friendship (cùng logic)
+    bool success = db->rejectFriendRequest(user_id, friend_id);
+    string my_username = db->getUsername(user_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    if (success) {
+        map<string, string> resp;
+        resp["message"] = "Đã hủy kết bạn với " + friend_username;
+        send_packet(client_socket, S_RESP_UNFRIEND, STATUS_OK, JsonHelper::build(resp));
+        cout << "✓ Unfriended: " << my_username << " <-> " << friend_username << endl;
+    } else {
+        map<string, string> resp;
+        resp["message"] = "Không thể hủy kết bạn";
+        send_packet(client_socket, S_RESP_UNFRIEND, STATUS_SERVER_ERROR, JsonHelper::build(resp));
+    }
+}
+
 void handle_group_create(int client_socket, const map<string, string>& body) {
     string token = body.count("token") ? body.at("token") : "";
     string group_name = body.count("group_name") ? body.at("group_name") : "";
@@ -280,6 +474,106 @@ void handle_group_join(int client_socket, const map<string, string>& body) {
     }
     
     cout << "✓ User " << username << " joined group " << group_name << endl;
+}
+
+void handle_group_list(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["error"] = "Unauthorized";
+        send_packet(client_socket, S_RESP_GROUP_LIST, STATUS_UNAUTHORIZED, 
+                   JsonHelper::build(resp));
+        return;
+    }
+    
+    // Get user's groups
+    vector<map<string, string>> groups = db->getUserGroups(user_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Build response JSON với danh sách nhóm
+    string json_resp = "{\"groups\":[";
+    for (size_t i = 0; i < groups.size(); i++) {
+        if (i > 0) json_resp += ",";
+        json_resp += "{\"group_id\":\"" + groups[i]["group_id"] + "\",";
+        json_resp += "\"group_name\":\"" + groups[i]["group_name"] + "\"}";
+    }
+    json_resp += "]}";
+    
+    send_packet(client_socket, S_RESP_GROUP_LIST, STATUS_OK, json_resp);
+    
+    cout << "✓ Sent group list to user_id " << user_id << " (" << groups.size() << " groups)" << endl;
+}
+
+void handle_group_leave(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string group_id_str = body.count("group_id") ? body.at("group_id") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    int group_id = atoi(group_id_str.c_str());
+    if (group_id <= 0) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    // Check if user is member
+    if (!db->isGroupMember(group_id, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    string username = db->getUsername(user_id);
+    string group_name = db->getGroupName(group_id);
+    
+    // Get members before leaving (to notify them)
+    vector<int> member_ids = db->getGroupMembers(group_id);
+    
+    // Remove user from group
+    db->removeGroupMember(group_id, user_id);
+    
+    // Nếu là thành viên cuối cùng → xóa luôn nhóm
+    if (member_ids.size() == 1) {
+        db->deleteGroup(group_id);
+        pthread_mutex_unlock(&db_mutex);
+        cout << "✓ User " << username << " left and group " << group_name << " was deleted (no members left)" << endl;
+        return;
+    }
+    
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Notify all remaining members
+    for (int member_id : member_ids) {
+        if (member_id == user_id) continue;  // Skip the leaving user
+        
+        pthread_mutex_lock(&db_mutex);
+        string member_name = db->getUsername(member_id);
+        pthread_mutex_unlock(&db_mutex);
+        
+        pthread_mutex_lock(&clients_mutex);
+        if (username_to_socket.count(member_name)) {
+            int member_socket = username_to_socket[member_name];
+            pthread_mutex_unlock(&clients_mutex);
+            
+            map<string, string> notify;
+            notify["username"] = username;
+            notify["group_id"] = group_id_str;
+            send_packet(member_socket, S_NOTIFY_GROUP_LEAVE, STATUS_OK, 
+                       JsonHelper::build(notify));
+        } else {
+            pthread_mutex_unlock(&clients_mutex);
+        }
+    }
+    
+    cout << "✓ User " << username << " left group " << group_name << endl;
 }
 
 void handle_msg_private(int client_socket, const map<string, string>& body) {
@@ -431,6 +725,27 @@ void* handle_client(void* arg) {
                 break;
             case C_REQ_GROUP_JOIN:
                 handle_group_join(client_socket, body);
+                break;
+            case C_REQ_GROUP_LEAVE:
+                handle_group_leave(client_socket, body);
+                break;
+            case C_REQ_GROUP_LIST:
+                handle_group_list(client_socket, body);
+                break;
+            case C_REQ_FRIEND_ADD:
+                handle_friend_add(client_socket, body);
+                break;
+            case C_RESP_FRIEND_REQ:
+                handle_friend_response(client_socket, body);
+                break;
+            case C_REQ_FRIEND_LIST:
+                handle_friend_list(client_socket, body);
+                break;
+            case C_REQ_PENDING_REQUESTS:
+                handle_pending_requests(client_socket, body);
+                break;
+            case C_REQ_UNFRIEND:
+                handle_unfriend(client_socket, body);
                 break;
             case C_REQ_MSG_PRIVATE:
                 handle_msg_private(client_socket, body);

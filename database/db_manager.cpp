@@ -270,7 +270,14 @@ bool DBManager::rejectFriendRequest(int user_id1, int user_id2) {
 }
 
 vector<string> DBManager::getFriends(int user_id) {
-    string query = "SELECT friend_username FROM user_friends WHERE user_id=" + to_string(user_id);
+    // Query trực tiếp từ friendships table thay vì dùng view bị lỗi
+    string query = "SELECT u2.username FROM friendships f "
+                   "JOIN users u2 ON f.user_id2 = u2.user_id "
+                   "WHERE f.user_id1 = " + to_string(user_id) + " AND f.status = 'accepted' "
+                   "UNION "
+                   "SELECT u1.username FROM friendships f "
+                   "JOIN users u1 ON f.user_id1 = u1.user_id "
+                   "WHERE f.user_id2 = " + to_string(user_id) + " AND f.status = 'accepted'";
     
     vector<string> friends;
     if (mysql_query(conn, query.c_str())) {
@@ -387,6 +394,24 @@ bool DBManager::removeGroupMember(int group_id, int user_id) {
                    " AND user_id=" + to_string(user_id);
     
     if (mysql_query(conn, query.c_str())) {
+        printError();
+        return false;
+    }
+    return true;
+}
+
+bool DBManager::deleteGroup(int group_id) {
+    // Xóa tất cả members trước (nếu còn)
+    string query1 = "DELETE FROM group_members WHERE group_id=" + to_string(group_id);
+    mysql_query(conn, query1.c_str());
+    
+    // Xóa tin nhắn trong nhóm
+    string query2 = "DELETE FROM group_messages WHERE group_id=" + to_string(group_id);
+    mysql_query(conn, query2.c_str());
+    
+    // Xóa nhóm
+    string query3 = "DELETE FROM `groups` WHERE group_id=" + to_string(group_id);
+    if (mysql_query(conn, query3.c_str())) {
         printError();
         return false;
     }
