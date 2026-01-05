@@ -5,12 +5,9 @@
 #include <unistd.h>
 #include <thread>
 #include <atomic>
-#include <mutex>
-#include <condition_variable>
 #include <cstring>
 #include <string>
 #include <map>
-#include <queue>
 #include "../common/protocol.h"
 #include "../common/json_helper.h"
 
@@ -21,11 +18,6 @@ string current_token;
 string current_username;
 atomic<bool> is_logged_in(false);
 atomic<bool> running(true);
-
-// ===== SYNCHRONIZATION FOR RESPONSE HANDLING =====
-mutex response_mutex;
-condition_variable response_cv;
-queue<pair<PacketHeader, string>> response_queue;  // Queue để lưu responses
 
 // Send packet (Header + JSON Body)
 void send_packet(int command, const map<string, string>& body) {
@@ -39,62 +31,38 @@ void send_packet(int command, const map<string, string>& body) {
     }
 }
 
-// Đợi response từ server (được gọi bởi main thread)
-pair<PacketHeader, string> wait_for_response() {
-    unique_lock<mutex> lock(response_mutex);
-    response_cv.wait(lock, []{ return !response_queue.empty() || !running; });
+// Receive packet
+pair<PacketHeader, string> receive_packet() {
+    PacketHeader header;
+    int bytes = recv(client_socket, &header, sizeof(PacketHeader), 0);
     
-    if (!running || response_queue.empty()) {
-        return {PacketHeader(), ""};
+    if (bytes <= 0) {
+        running = false;
+        return {header, ""};
     }
     
-    auto response = response_queue.front();
-    response_queue.pop();
-    return response;
+    string json_body;
+    if (header.body_length > 0) {
+        char* buffer = new char[header.body_length + 1];
+        recv(client_socket, buffer, header.body_length, 0);
+        buffer[header.body_length] = '\0';
+        json_body = string(buffer);
+        delete[] buffer;
+    }
+    
+    return {header, json_body};
 }
 
-// Kiểm tra command có phải là response (không phải notification)
-bool is_response_command(int cmd) {
-    return cmd == S_RESP_LOGIN || 
-           cmd == S_RESP_REGISTER || 
-           cmd == S_RESP_GROUP_CREATE;
-}
-
-// Thread nhận tin nhắn từ server (CHỈ THREAD NÀY ĐỌC SOCKET)
+// Thread nhận tin nhắn từ server
 void receive_thread() {
     while (running) {
-        PacketHeader header;
-        int bytes = recv(client_socket, &header, sizeof(PacketHeader), 0);
+        auto [header, json_body] = receive_packet();
         
-        if (bytes <= 0) {
-            running = false;
-            response_cv.notify_all();
-            break;
-        }
+        if (!running) break;
         
-        string json_body;
-        if (header.body_length > 0 && header.body_length < MAX_BODY_SIZE) {
-            char* buffer = new char[header.body_length + 1];
-            int total_read = 0;
-            while (total_read < header.body_length) {
-                int n = recv(client_socket, buffer + total_read, header.body_length - total_read, 0);
-                if (n <= 0) break;
-                total_read += n;
-            }
-            buffer[header.body_length] = '\0';
-            json_body = string(buffer);
-            delete[] buffer;
-        }
+        // DEBUG
+        cout << "\n[DEBUG] Received command: " << header.command << endl;
         
-        // Nếu là response → đẩy vào queue để main thread xử lý
-        if (is_response_command(header.command)) {
-            lock_guard<mutex> lock(response_mutex);
-            response_queue.push({header, json_body});
-            response_cv.notify_one();
-            continue;
-        }
-        
-        // Nếu là notification → xử lý ngay
         map<string, string> body = JsonHelper::parse(json_body);
         
         switch (header.command) {
@@ -137,6 +105,7 @@ void receive_thread() {
                 break;
                 
             default:
+                // Ignore other notifications in background thread
                 break;
         }
     }
@@ -152,17 +121,17 @@ void do_register() {
     
     map<string, string> body;
     body["username"] = username;
-    body["pass_hash"] = password;
+    body["pass_hash"] = password;  // Trong thực tế nên hash
     
     send_packet(C_REQ_REGISTER, body);
     
-    auto [header, json_resp] = wait_for_response();
+    auto [header, json_resp] = receive_packet();
     map<string, string> resp = JsonHelper::parse(json_resp);
     
     if (header.status == STATUS_CREATED) {
-        cout << "✅ Đăng ký thành công!" << endl;
+        cout << " Đăng ký thành công!" << endl;
     } else {
-        cout << "❌ Đăng ký thất bại: " << (resp.count("error") ? resp["error"] : "Unknown error") << endl;
+        cout << " Đăng ký thất bại: " << (resp.count("error") ? resp["error"] : "Unknown error") << endl;
     }
 }
 
@@ -180,7 +149,7 @@ void do_login() {
     
     send_packet(C_REQ_LOGIN, body);
     
-    auto [header, json_resp] = wait_for_response();
+    auto [header, json_resp] = receive_packet();
     map<string, string> resp = JsonHelper::parse(json_resp);
     
     if (header.status == STATUS_OK) {
@@ -189,6 +158,7 @@ void do_login() {
         is_logged_in = true;
         cout << "✅ Đăng nhập thành công!" << endl;
         
+        // Show online friends
         vector<string> friends = JsonHelper::parse_array(json_resp, "friends_online");
         if (!friends.empty()) {
             cout << "🟢 Bạn bè đang online: ";
@@ -199,7 +169,7 @@ void do_login() {
             cout << endl;
         }
     } else {
-        cout << "❌ Đăng nhập thất bại: " << (resp.count("error") ? resp["error"] : "Unknown error") << endl;
+        cout << "Đăng nhập thất bại: " << (resp.count("error") ? resp["error"] : "Unknown error") << endl;
     }
 }
 
@@ -216,13 +186,13 @@ void do_create_group() {
     
     send_packet(C_REQ_GROUP_CREATE, body);
     
-    auto [header, json_resp] = wait_for_response();
+    auto [header, json_resp] = receive_packet();
     map<string, string> resp = JsonHelper::parse(json_resp);
     
     if (header.status == STATUS_CREATED) {
-        cout << "✅ Tạo nhóm thành công! Group ID: " << resp["group_id"] << endl;
+        cout << " Tạo nhóm thành công! Group ID: " << resp["group_id"] << endl;
     } else {
-        cout << "❌ Tạo nhóm thất bại: " << (resp.count("error") ? resp["error"] : "Unknown error") << endl;
+        cout << " Tạo nhóm thất bại: " << (resp.count("error") ? resp["error"] : "Unknown error") << endl;
     }
 }
 
@@ -238,7 +208,7 @@ void do_join_group() {
     
     send_packet(C_REQ_GROUP_JOIN, body);
     
-    cout << "✅ Đã gửi yêu cầu tham gia nhóm" << endl;
+    cout << " Gửi yêu cầu tham gia nhóm" << endl;
 }
 
 void do_send_private() {
@@ -257,7 +227,7 @@ void do_send_private() {
     
     send_packet(C_REQ_MSG_PRIVATE, body);
     
-    cout << "✅ Đã gửi tin nhắn riêng tư" << endl;
+    cout << " Đã gửi tin nhắn riêng tư" << endl;
 }
 
 void do_send_group() {
@@ -276,7 +246,7 @@ void do_send_group() {
     
     send_packet(C_REQ_MSG_GROUP, body);
     
-    cout << "✅ Đã gửi tin nhắn nhóm" << endl;
+    cout << " Đã gửi tin nhắn nhóm" << endl;
 }
 
 void show_menu() {
@@ -305,7 +275,7 @@ int main(int argc, char* argv[]) {
     
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket < 0) {
-        cerr << "❌ Không thể tạo socket" << endl;
+        cerr << " Không thể tạo socket" << endl;
         return 1;
     }
     
@@ -315,13 +285,13 @@ int main(int argc, char* argv[]) {
     inet_pton(AF_INET, server_ip.c_str(), &server_addr.sin_addr);
     
     if (connect(client_socket, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        cerr << "❌ Không thể kết nối đến server " << server_ip << ":" << port << endl;
+        cerr << " Không thể kết nối đến server " << server_ip << ":" << port << endl;
         return 1;
     }
     
-    cout << "✅ Đã kết nối đến server!" << endl;
+    cout << " Đã kết nối đến server!" << endl;
     
-    // Start receive thread - CHỈ THREAD NÀY ĐỌC SOCKET
+    // Start receive thread
     thread recv_thread(receive_thread);
     recv_thread.detach();
     
@@ -344,7 +314,7 @@ int main(int argc, char* argv[]) {
                     running = false;
                     break;
                 default:
-                    cout << "❌ Lựa chọn không hợp lệ" << endl;
+                    cout << " Lựa chọn không hợp lệ" << endl;
             }
         } else {
             switch (choice) {
@@ -364,13 +334,13 @@ int main(int argc, char* argv[]) {
                     running = false;
                     break;
                 default:
-                    cout << "❌ Lựa chọn không hợp lệ" << endl;
+                    cout << " Lựa chọn không hợp lệ" << endl;
             }
         }
     }
     
     close(client_socket);
-    cout << "👋 Tạm biệt!" << endl;
+    cout << " Tạm biệt!" << endl;
     
     return 0;
 }

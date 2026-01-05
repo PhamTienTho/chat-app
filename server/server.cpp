@@ -360,6 +360,8 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
     vector<int> member_ids = db->getGroupMembers(group_id);
     pthread_mutex_unlock(&db_mutex);
     
+    cout << "📤 Broadcasting to " << member_ids.size() << " members" << endl;
+    
     // Broadcast to online members
     for (int member_id : member_ids) {
         pthread_mutex_lock(&db_mutex);
@@ -371,6 +373,8 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
             int member_socket = username_to_socket[member_name];
             pthread_mutex_unlock(&clients_mutex);
             
+            cout << "  → Sending to " << member_name << " (socket " << member_socket << ")" << endl;
+            
             map<string, string> notify;
             notify["from_username"] = from_username;
             notify["group_id"] = group_id_str;
@@ -378,6 +382,7 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
             send_packet(member_socket, S_NOTIFY_MSG_GROUP, STATUS_OK, 
                        JsonHelper::build(notify));
         } else {
+            cout << "  ✗ " << member_name << " not in online cache" << endl;
             pthread_mutex_unlock(&clients_mutex);
         }
     }
