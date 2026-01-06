@@ -180,6 +180,28 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
                              data.value("message"), data.value("group_id"));
             break;
             
+        case S_RESP_FILE_OK:
+            if (header.status == STATUS_OK) {
+                QString message = data.value("message");
+                if (message.contains("download")) {
+                    // File download response
+                    QString fileName = data.value("file_name");
+                    QString fileDataBase64 = data.value("file_data");
+                    qint64 fileSize = data.value("file_size", "0").toLongLong();
+                    
+                    if (!fileDataBase64.isEmpty()) {
+                        QByteArray fileData = QByteArray::fromBase64(fileDataBase64.toLatin1());
+                        emit fileDownloadReceived(fileName, fileData, fileSize);
+                        qDebug() << "File download received:" << fileName << "Size:" << fileSize;
+                    }
+                } else {
+                    qDebug() << "File uploaded successfully:" << data.value("file_name");
+                }
+            } else {
+                qDebug() << "File operation failed:" << data.value("message");
+            }
+            break;
+            
         case S_RESP_GROUP_LIST: {
             QStringList groups;
             // Parse groups array from JSON
@@ -634,4 +656,41 @@ void NetworkClient::sendMarkMessagesRead(const QString &senderUsername)
     body["token"] = m_token;
     body["sender_username"] = senderUsername;
     sendPacket(C_REQ_MARK_MESSAGES_READ, body);
+}
+
+void NetworkClient::sendFileUpload(const QString &target, bool isGroup, 
+                                    const QString &fileName, qint64 fileSize, 
+                                    const QByteArray &fileData)
+{
+    // Check if file is too large for JSON packet
+    if (fileData.size() > 500 * 1024) { // 500KB limit for safety
+        qDebug() << "File too large for packet:" << fileData.size() << "bytes";
+        return;
+    }
+    
+    // Encode file data as base64
+    QString fileDataBase64 = QString::fromLatin1(fileData.toBase64());
+    qDebug() << "File upload:" << fileName << fileSize << "bytes, base64 size:" << fileDataBase64.length();
+    
+    QMap<QString, QString> body;
+    body["token"] = m_token;
+    body["file_name"] = fileName;
+    body["file_size"] = QString::number(fileSize);
+    body["file_data"] = fileDataBase64;
+    
+    if (isGroup) {
+        body["group_id"] = target;
+    } else {
+        body["target_username"] = target;
+    }
+    
+    sendPacket(C_REQ_FILE_UPLOAD, body);
+}
+
+void NetworkClient::sendFileDownload(const QString &fileName)
+{
+    QMap<QString, QString> body;
+    body["token"] = m_token;
+    body["file_name"] = fileName;
+    sendPacket(C_REQ_FILE_DOWNLOAD, body);
 }

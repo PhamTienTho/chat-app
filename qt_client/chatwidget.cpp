@@ -16,6 +16,9 @@
 #include <QFrame>
 #include <QGridLayout>
 #include <QScrollArea>
+#include <QFileDialog>
+#include <QFile>
+#include <QFileInfo>
 
 // ===== MessageBubble Implementation =====
 MessageBubble::MessageBubble(const QString &sender, const QString &message, const QString &time, 
@@ -36,19 +39,74 @@ MessageBubble::MessageBubble(const QString &sender, const QString &message, cons
     senderLabel->setStyleSheet(QString("color: %1; font-weight: bold; font-size: 14px;")
                                .arg(isMe ? "#075E54" : "#128C7E"));
     
-    // Message content
-    QLabel *messageLabel = new QLabel(message);
-    messageLabel->setWordWrap(true);
-    messageLabel->setStyleSheet("color: #1a1a1a; font-size: 15px;");
-    messageLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    // Message content - handle file messages differently  
+    if (message.startsWith("[FILE:") && message.contains("]")) {
+        int fileStart = 6; // Length of "[FILE:"
+        int fileEnd = message.indexOf("]");
+        QString fileName = message.mid(fileStart, fileEnd - fileStart);
+        QString originalName = message.mid(fileEnd + 1);
+        
+        // Create file display widget
+        QWidget *fileWidget = new QWidget();
+        QHBoxLayout *fileLayout = new QHBoxLayout(fileWidget);
+        fileLayout->setContentsMargins(5, 5, 5, 5);
+        
+        QLabel *fileIcon = new QLabel("📎");
+        fileIcon->setStyleSheet("font-size: 18px;");
+        
+        QLabel *fileLabel = new QLabel(QString("<span style='color: #0066cc;'><b>%1</b></span><br/><small style='color: #666;'>Click to download</small>")
+                                       .arg(originalName));
+        fileLabel->setTextFormat(Qt::RichText);
+        fileLabel->setStyleSheet("font-size: 14px; padding: 5px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;");
+        fileLabel->setCursor(Qt::PointingHandCursor);
+        fileLabel->setProperty("fileName", fileName);
+        
+        // Enable mouse tracking and connect linkActivated signal
+        fileLabel->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
+        fileLabel->setText(QString("<a href='download:%1' style='color: #0066cc; text-decoration: none;'><b>%2</b><br/><small>Click to download</small></a>")
+                          .arg(fileName).arg(originalName));
+        
+        // Connect signal - this will be connected in ChatWidget constructor
+        QObject::connect(fileLabel, &QLabel::linkActivated, [this, fileName](const QString &link) {
+            if (link.startsWith("download:")) {
+                // Emit signal that ChatWidget can handle
+                qDebug() << "File download requested:" << fileName;
+                
+                // Find parent ChatWidget - simple approach
+                QWidget *parent = this->parentWidget();
+                while (parent) {
+                    ChatWidget *chatWidget = qobject_cast<ChatWidget*>(parent);
+                    if (chatWidget) {
+                        // Direct call since we're in same translation unit
+                        QMetaObject::invokeMethod(chatWidget, "downloadFile", Q_ARG(QString, fileName));
+                        break;
+                    }
+                    parent = parent->parentWidget();
+                }
+            }
+        });
+        
+        fileLayout->addWidget(fileIcon);
+        fileLayout->addWidget(fileLabel);
+        fileLayout->addStretch();
+        
+        bubbleLayout->addWidget(senderLabel);
+        bubbleLayout->addWidget(fileWidget);
+    } else {
+        QLabel *messageLabel = new QLabel(message);
+        messageLabel->setWordWrap(true);
+        messageLabel->setStyleSheet("color: #1a1a1a; font-size: 15px;");
+        messageLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        
+        bubbleLayout->addWidget(senderLabel);
+        bubbleLayout->addWidget(messageLabel);
+    }
     
     // Time
     QLabel *timeLabel = new QLabel(time);
     timeLabel->setStyleSheet("color: #888; font-size: 11px;");
     timeLabel->setAlignment(isMe ? Qt::AlignRight : Qt::AlignLeft);
     
-    bubbleLayout->addWidget(senderLabel);
-    bubbleLayout->addWidget(messageLabel);
     bubbleLayout->addWidget(timeLabel);
     
     // Seen status (only for own messages)
@@ -94,11 +152,20 @@ void MessageBubble::setSeenStatus(bool seen)
 ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *parent)
     : QWidget(parent), m_client(client), m_username(username), m_isChatWithGroup(false)
 {
+    qDebug() << "ChatWidget constructor START, m_client=" << m_client;
     setupUI();
     
     // Connect signals
+    qDebug() << "About to connect signals";
     connect(m_client, &NetworkClient::friendListReceived, this, &ChatWidget::onFriendListReceived);
     connect(m_client, &NetworkClient::groupListReceived, this, &ChatWidget::onGroupListReceived);
+    bool ok = connect(m_client, &NetworkClient::allGroupsReceived, this, &ChatWidget::onAllGroupsReceived, Qt::QueuedConnection);
+    qDebug() << "Connect allGroupsReceived result:" << ok;
+    // Fallback lambda for debugging
+    connect(m_client, &NetworkClient::allGroupsReceived, [this](const QList<QPair<QString, QString>> &groups) {
+        qDebug() << "Lambda: allGroupsReceived with" << groups.size() << "groups";
+        onAllGroupsReceived(groups);
+    });
     connect(m_client, &NetworkClient::pendingRequestsReceived, this, &ChatWidget::onPendingRequestsReceived);
     connect(m_client, &NetworkClient::privateMessageReceived, this, &ChatWidget::onPrivateMessage);
     connect(m_client, &NetworkClient::groupMessageReceived, this, &ChatWidget::onGroupMessage);
@@ -111,6 +178,7 @@ ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *
     connect(m_client, &NetworkClient::privateChatHistoryReceived, this, &ChatWidget::onPrivateChatHistoryReceived);
     connect(m_client, &NetworkClient::groupChatHistoryReceived, this, &ChatWidget::onGroupChatHistoryReceived);
     connect(m_client, &NetworkClient::messagesReadNotification, this, &ChatWidget::onMessagesReadNotification);
+    connect(m_client, &NetworkClient::fileDownloadReceived, this, &ChatWidget::onFileDownloadReceived);
     
     // Initialize tracking variables
     m_currentOffset = 0;
@@ -119,6 +187,13 @@ ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *
     // Initial data load
     m_client->sendFriendList();
     m_client->sendGroupList();
+}
+
+QString ChatWidget::formatFileSize(qint64 bytes)
+{
+    if (bytes < 1024) return QString::number(bytes) + " B";
+    else if (bytes < 1024 * 1024) return QString::number(bytes / 1024.0, 'f', 1) + " KB";
+    else return QString::number(bytes / (1024.0 * 1024.0), 'f', 1) + " MB";
 }
 
 void ChatWidget::setupUI()
@@ -389,6 +464,19 @@ void ChatWidget::setupUI()
     inputLayout->setContentsMargins(10, 10, 10, 10);
     inputLayout->setSpacing(8);
     
+    // File attachment button
+    m_attachButton = new QToolButton;
+    m_attachButton->setText("📎");
+    m_attachButton->setFont(QFont("Segoe UI Emoji", 16));
+    m_attachButton->setToolTip("Attach file");
+    m_attachButton->setStyleSheet(
+        "QToolButton { background-color: #f5f5f5; border: 1px solid #ddd; "
+        "border-radius: 20px; padding: 8px; min-width: 40px; min-height: 40px; }"
+        "QToolButton:hover { background-color: #e0e0e0; }"
+        "QToolButton:pressed { background-color: #bdbdbd; }");
+    m_attachButton->setEnabled(false);
+    connect(m_attachButton, &QToolButton::clicked, this, &ChatWidget::onAttachFile);
+    
     // Emoji button
     m_emojiButton = new QToolButton;
     uint32_t smileyCode = 0x1F60A;
@@ -417,6 +505,7 @@ void ChatWidget::setupUI()
         "QPushButton:disabled { background-color: #ccc; }");
     m_sendButton->setEnabled(false);
     
+    inputLayout->addWidget(m_attachButton);
     inputLayout->addWidget(m_emojiButton);
     inputLayout->addWidget(m_messageInput);
     inputLayout->addWidget(m_sendButton);
@@ -591,6 +680,7 @@ void ChatWidget::onFriendSelected(QListWidgetItem *item)
     m_messageInput->setEnabled(true);
     m_sendButton->setEnabled(true);
     m_emojiButton->setEnabled(true);
+    m_attachButton->setEnabled(true);
     m_messageInput->setFocus();
     
     // Clear and load chat history from server
@@ -629,6 +719,7 @@ void ChatWidget::onGroupSelected(QListWidgetItem *item)
         m_messageInput->setEnabled(true);
         m_sendButton->setEnabled(true);
         m_emojiButton->setEnabled(true);
+        m_attachButton->setEnabled(true);
         m_messageInput->setFocus();
         
         // Hide seen status for group chat
@@ -711,8 +802,106 @@ void ChatWidget::onCreateGroup()
 
 void ChatWidget::onJoinGroup()
 {
+    // Request list of all groups and show dialog
     qDebug() << "onJoinGroup called - requesting all groups";
     m_client->sendAllGroups();
+}
+
+void ChatWidget::onAttachFile()
+{
+    if (m_currentTarget.isEmpty()) {
+        QMessageBox::warning(this, "Lỗi", "Vui lòng chọn người hoặc nhóm để gửi file");
+        return;
+    }
+    
+    QString filePath = QFileDialog::getOpenFileName(
+        this,
+        "Chọn file để gửi",
+        QDir::homePath(),
+        "All Files (*.*)"
+    );
+    
+    if (filePath.isEmpty()) {
+        return; // User cancelled
+    }
+    
+    QFileInfo fileInfo(filePath);
+    qint64 fileSize = fileInfo.size();
+    
+    // Limit file size to 1MB (base64 encoded will be ~1.33MB)
+    if (fileSize > 1024 * 1024) {
+        QMessageBox::warning(this, "Lỗi", "File quá lớn! Giới hạn 1MB");
+        return;
+    }
+    
+    // Read file content
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "Lỗi", "Không thể đọc file");
+        return;
+    }
+    
+    QByteArray fileData = file.readAll();
+    file.close();
+    
+    // Send file upload request
+    m_client->sendFileUpload(m_currentTarget, m_isChatWithGroup, 
+                             fileInfo.fileName(), fileSize, fileData);
+    
+    // Show uploading message
+    QString displayMsg = QString("📎 Đang gửi file: %1 (%2)...")
+                         .arg(fileInfo.fileName())
+                         .arg(formatFileSize(fileSize));
+    appendMessage("Bạn", displayMsg, true);
+}
+
+void ChatWidget::downloadFile(const QString &fileName)
+{
+    m_downloadPath = QFileDialog::getExistingDirectory(this, "Chọn thư mục để lưu file");
+    if (m_downloadPath.isEmpty()) return;
+    
+    // Request file from server
+    m_client->sendFileDownload(fileName);
+    
+    QMessageBox::information(this, "Download", 
+        QString("Đang tải file %1...\nFile sẽ được lưu vào: %2").arg(fileName, m_downloadPath));
+}
+
+void ChatWidget::onFileDownloadReceived(const QString &fileName, const QByteArray &fileData, qint64 fileSize)
+{
+    if (m_downloadPath.isEmpty()) {
+        qDebug() << "Download path not set";
+        return;
+    }
+    
+    // Extract original filename from server filename (remove timestamp prefix)
+    QString originalName = fileName;
+    int underscorePos = fileName.indexOf('_');
+    if (underscorePos > 0) {
+        originalName = fileName.mid(underscorePos + 1);
+    }
+    
+    QString fullPath = m_downloadPath + "/" + originalName;
+    
+    QFile file(fullPath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        QMessageBox::warning(this, "Lỗi", "Không thể lưu file: " + fullPath);
+        return;
+    }
+    
+    qint64 written = file.write(fileData);
+    file.close();
+    
+    if (written == fileSize) {
+        QMessageBox::information(this, "Thành công", 
+            QString("Đã tải file thành công!\nLưu tại: %1").arg(fullPath));
+        qDebug() << "File saved successfully:" << fullPath;
+    } else {
+        QMessageBox::warning(this, "Lỗi", "Lưu file không hoàn chỉnh");
+        qDebug() << "File save incomplete:" << written << "of" << fileSize;
+    }
+    
+    m_downloadPath.clear(); // Reset for next download
 }
 
 void ChatWidget::onAllGroupsReceived(const QList<QPair<QString, QString>> &groups)
@@ -723,11 +912,13 @@ void ChatWidget::onAllGroupsReceived(const QList<QPair<QString, QString>> &group
         return;
     }
     
+    // Create dialog to select group
     QDialog dialog(this);
     dialog.setWindowTitle("Chọn nhóm để tham gia");
     dialog.setMinimumWidth(400);
     
     QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    
     QLabel *label = new QLabel("Chọn nhóm bạn muốn tham gia:");
     layout->addWidget(label);
     
@@ -739,8 +930,8 @@ void ChatWidget::onAllGroupsReceived(const QList<QPair<QString, QString>> &group
         "QListWidget::item:selected { background-color: #2196F3; color: white; }");
     
     for (const auto &group : groups) {
-        QListWidgetItem *item = new QListWidgetItem(group.second);
-        item->setData(Qt::UserRole, group.first);
+        QListWidgetItem *item = new QListWidgetItem(group.second);  // Display name + member count
+        item->setData(Qt::UserRole, group.first);  // Store group_id
         listWidget->addItem(item);
     }
     layout->addWidget(listWidget);
@@ -777,6 +968,7 @@ void ChatWidget::onAllGroupsReceived(const QList<QPair<QString, QString>> &group
     
     dialog.exec();
 }
+
 void ChatWidget::onLeaveGroup()
 {
     QListWidgetItem *item = m_groupsList->currentItem();

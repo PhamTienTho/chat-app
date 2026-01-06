@@ -7,6 +7,10 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
 #include "../common/protocol.h"
 #include "../common/json_helper.h"
 #include "../database/db_manager.h"
@@ -550,7 +554,6 @@ void handle_group_list(int client_socket, const map<string, string>& body) {
     cout << "✓ Sent group list to user_id " << user_id << " (" << groups.size() << " groups)" << endl;
 }
 
-
 void handle_all_groups(int client_socket, const map<string, string>& body) {
     string token = body.count("token") ? body.at("token") : "";
     
@@ -565,9 +568,11 @@ void handle_all_groups(int client_socket, const map<string, string>& body) {
         return;
     }
     
+    // Get all groups in system
     vector<map<string, string>> all_groups = db->getAllGroups();
     pthread_mutex_unlock(&db_mutex);
     
+    // Build response JSON
     string json_resp = "{\"groups\":[";
     for (size_t i = 0; i < all_groups.size(); i++) {
         if (i > 0) json_resp += ",";
@@ -581,6 +586,42 @@ void handle_all_groups(int client_socket, const map<string, string>& body) {
     
     cout << "✓ Sent all groups list to user_id " << user_id << " (" << all_groups.size() << " groups)" << endl;
 }
+
+/*
+void handle_all_users(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["error"] = "Unauthorized";
+        send_packet(client_socket, S_RESP_ALL_USERS, STATUS_UNAUTHORIZED, 
+                   JsonHelper::build(resp));
+        return;
+    }
+    
+    // Get all users in system
+    vector<map<string, string>> all_users = db->getAllUsers();
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Build response JSON
+    string json_resp = "{\"users\":[";
+    for (size_t i = 0; i < all_users.size(); i++) {
+        if (i > 0) json_resp += ",";
+        json_resp += "{\"user_id\":\"" + all_users[i]["user_id"] + "\",";
+        json_resp += "\"username\":\"" + all_users[i]["username"] + "\",";
+        json_resp += "\"is_online\":\"" + all_users[i]["is_online"] + "\"}";
+    }
+    json_resp += "]}";
+    
+    send_packet(client_socket, S_RESP_ALL_USERS, STATUS_OK, json_resp);
+    
+    cout << "✓ Sent all users list to user_id " << user_id << " (" << all_users.size() << " users)" << endl;
+}
+*/
+
 void handle_group_leave(int client_socket, const map<string, string>& body) {
     string token = body.count("token") ? body.at("token") : "";
     string group_id_str = body.count("group_id") ? body.at("group_id") : "";
@@ -776,7 +817,7 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
     string from_username = db->getUsername(user_id);
     string group_name = db->getGroupName(group_id);
     
-    // Save to database
+    // Save message
     db->saveGroupMessage(group_id, user_id, message);
     
     // Get all members
@@ -801,7 +842,6 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
             map<string, string> notify;
             notify["from_username"] = from_username;
             notify["group_id"] = group_id_str;
-            notify["group_name"] = group_name;
             notify["message"] = message;
             send_packet(member_socket, S_NOTIFY_MSG_GROUP, STATUS_OK, 
                        JsonHelper::build(notify));
@@ -903,8 +943,7 @@ void handle_chat_history_group(int client_socket, const map<string, string>& bod
     
     for (size_t i = 0; i < messages.size(); i++) {
         if (i > 0) json += ",";
-        json += "{\"message_id\":" + messages[i]["message_id"] + ",";
-        json += "\"from_username\":\"" + messages[i]["from_username"] + "\",";
+        json += "{\"from_username\":\"" + messages[i]["from_username"] + "\",";
         json += "\"message\":\"" + JsonHelper::escapeJson(messages[i]["message_text"]) + "\",";
         json += "\"sent_at\":\"" + messages[i]["sent_at"] + "\"}";
     }
@@ -957,6 +996,219 @@ void handle_mark_messages_read(int client_socket, const map<string, string>& bod
             pthread_mutex_unlock(&clients_mutex);
         }
     }
+}
+
+// Base64 decode helper
+string base64_decode(const string &in) {
+    string out;
+    vector<int> T(256, -1);
+    for (int i = 0; i < 64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
+    int val = 0, valb = -8;
+    for (unsigned char c : in) {
+        if (T[c] == -1) break;
+        val = (val << 6) + T[c];
+        valb += 6;
+        if (valb >= 0) {
+            out.push_back(char((val >> valb) & 0xFF));
+            valb -= 8;
+        }
+    }
+    return out;
+}
+
+void handle_file_upload(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string fileName = body.count("file_name") ? body.at("file_name") : "";
+    string fileSizeStr = body.count("file_size") ? body.at("file_size") : "0";
+    string fileDataBase64 = body.count("file_data") ? body.at("file_data") : "";
+    string target_username = body.count("target_username") ? body.at("target_username") : "";
+    string group_id = body.count("group_id") ? body.at("group_id") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Invalid token";
+        send_packet(client_socket, S_RESP_FILE_OK, STATUS_UNAUTHORIZED, JsonHelper::build(resp));
+        return;
+    }
+    string sender_username = db->getUsername(user_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    if (fileName.empty() || fileDataBase64.empty()) {
+        map<string, string> resp;
+        resp["message"] = "Missing file data";
+        send_packet(client_socket, S_RESP_FILE_OK, STATUS_BAD_REQUEST, JsonHelper::build(resp));
+        return;
+    }
+    
+    // Decode base64
+    string fileData = base64_decode(fileDataBase64);
+    
+    // Generate unique filename
+    time_t now = time(nullptr);
+    stringstream ss;
+    ss << now << "_" << fileName;
+    string savedFileName = ss.str();
+    string filePath = "uploads/" + savedFileName;
+    
+    // Save file
+    ofstream outFile(filePath, ios::binary);
+    if (!outFile) {
+        map<string, string> resp;
+        resp["message"] = "Failed to save file";
+        send_packet(client_socket, S_RESP_FILE_OK, STATUS_SERVER_ERROR, JsonHelper::build(resp));
+        return;
+    }
+    outFile.write(fileData.c_str(), fileData.size());
+    outFile.close();
+    
+    cout << "✓ Saved file: " << filePath << " (" << fileData.size() << " bytes)" << endl;
+    
+    // Send file message
+    string fileMessage = "[FILE:" + savedFileName + "]" + fileName;
+    
+    if (!group_id.empty()) {
+        // Group file
+        pthread_mutex_lock(&db_mutex);
+        int group_int_id = stoi(group_id);
+        bool saved = db->saveGroupMessage(group_int_id, user_id, fileMessage);
+        vector<int> member_ids = db->getGroupMembers(group_int_id);
+        string groupName = db->getGroupName(group_int_id);
+        
+        // Convert member IDs to usernames
+        vector<string> members;
+        for (int member_id : member_ids) {
+            string member_name = db->getUsername(member_id);
+            if (!member_name.empty()) members.push_back(member_name);
+        }
+        pthread_mutex_unlock(&db_mutex);
+        
+        if (saved) {
+            // Broadcast to group members
+            pthread_mutex_lock(&clients_mutex);
+            for (const string &member : members) {
+                if (username_to_socket.count(member)) {
+                    int mem_socket = username_to_socket[member];
+                    map<string, string> notify;
+                    notify["group_id"] = group_id;
+                    notify["group_name"] = groupName;
+                    notify["from_username"] = sender_username;
+                    notify["message"] = fileMessage;
+                    send_packet(mem_socket, S_NOTIFY_MSG_GROUP, STATUS_OK, JsonHelper::build(notify));
+                }
+            }
+            pthread_mutex_unlock(&clients_mutex);
+        }
+    } else {
+        // Private file
+        pthread_mutex_lock(&db_mutex);
+        int target_id = db->getUserId(target_username);
+        bool saved = db->savePrivateMessage(user_id, target_id, fileMessage);
+        pthread_mutex_unlock(&db_mutex);
+        
+        if (saved) {
+            // Send to target if online
+            pthread_mutex_lock(&clients_mutex);
+            if (username_to_socket.count(target_username)) {
+                int target_socket = username_to_socket[target_username];
+                pthread_mutex_unlock(&clients_mutex);
+                
+                map<string, string> notify;
+                notify["from_username"] = sender_username;
+                notify["message"] = fileMessage;
+                send_packet(target_socket, S_NOTIFY_MSG_PRIVATE, STATUS_OK, JsonHelper::build(notify));
+            } else {
+                pthread_mutex_unlock(&clients_mutex);
+            }
+        }
+    }
+    
+    // Confirm to sender
+    map<string, string> resp;
+    resp["message"] = "File uploaded successfully";
+    resp["file_name"] = savedFileName;
+    send_packet(client_socket, S_RESP_FILE_OK, STATUS_OK, JsonHelper::build(resp));
+}
+
+void handle_file_download(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string fileName = body.count("file_name") ? body.at("file_name") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Invalid token";
+        send_packet(client_socket, S_RESP_FILE_OK, STATUS_UNAUTHORIZED, JsonHelper::build(resp));
+        return;
+    }
+    pthread_mutex_unlock(&db_mutex);
+    
+    if (fileName.empty()) {
+        map<string, string> resp;
+        resp["message"] = "Missing file name";
+        send_packet(client_socket, S_RESP_FILE_OK, STATUS_BAD_REQUEST, JsonHelper::build(resp));
+        return;
+    }
+    
+    string filePath = "uploads/" + fileName;
+    
+    // Read file
+    ifstream inFile(filePath, ios::binary);
+    if (!inFile) {
+        map<string, string> resp;
+        resp["message"] = "File not found";
+        send_packet(client_socket, S_RESP_FILE_OK, STATUS_NOT_FOUND, JsonHelper::build(resp));
+        return;
+    }
+    
+    // Get file size
+    inFile.seekg(0, ios::end);
+    streamsize fileSize = inFile.tellg();
+    inFile.seekg(0, ios::beg);
+    
+    // Read file content
+    vector<char> fileData(fileSize);
+    if (!inFile.read(fileData.data(), fileSize)) {
+        inFile.close();
+        map<string, string> resp;
+        resp["message"] = "Failed to read file";
+        send_packet(client_socket, S_RESP_FILE_OK, STATUS_SERVER_ERROR, JsonHelper::build(resp));
+        return;
+    }
+    inFile.close();
+    
+    // Encode to base64
+    string fileDataStr(fileData.begin(), fileData.end());
+    string fileDataBase64;
+    
+    // Simple base64 encoding
+    const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    int val = 0, valb = -6;
+    for (unsigned char c : fileDataStr) {
+        val = (val << 8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            fileDataBase64.push_back(chars[(val >> valb) & 0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) fileDataBase64.push_back(chars[((val << 8) >> (valb + 8)) & 0x3F]);
+    while (fileDataBase64.size() % 4) fileDataBase64.push_back('=');
+    
+    // Send response
+    map<string, string> resp;
+    resp["message"] = "File download successful";
+    resp["file_name"] = fileName;
+    resp["file_size"] = to_string(fileSize);
+    resp["file_data"] = fileDataBase64;
+    
+    send_packet(client_socket, S_RESP_FILE_OK, STATUS_OK, JsonHelper::build(resp));
+    
+    cout << "✓ Sent file download: " << fileName << " (" << fileSize << " bytes) to user_id " << user_id << endl;
 }
 
 // ===== CLIENT HANDLER =====
@@ -1025,6 +1277,9 @@ void* handle_client(void* arg) {
             case C_REQ_FRIEND_LIST:
                 handle_friend_list(client_socket, body);
                 break;
+            // case C_REQ_ALL_USERS:
+            //     handle_all_users(client_socket, body);
+            //     break;
             case C_REQ_PENDING_REQUESTS:
                 handle_pending_requests(client_socket, body);
                 break;
@@ -1045,6 +1300,12 @@ void* handle_client(void* arg) {
                 break;
             case C_REQ_MARK_MESSAGES_READ:
                 handle_mark_messages_read(client_socket, body);
+                break;
+            case C_REQ_FILE_UPLOAD:
+                handle_file_upload(client_socket, body);
+                break;
+            case C_REQ_FILE_DOWNLOAD:
+                handle_file_download(client_socket, body);
                 break;
             default:
                 cout << "⚠ Unknown command: " << header.command << endl;

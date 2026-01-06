@@ -6,6 +6,9 @@
 #include <QByteArray>
 #include <QMap>
 #include <QString>
+#include <QStringList>
+#include <QList>
+#include <QPair>
 #include "protocol.h"
 
 class NetworkClient : public QObject
@@ -28,8 +31,9 @@ public:
     void sendJoinGroup(const QString &groupId);
     void sendLeaveGroup(const QString &groupId);
     void sendGroupList();
+    void sendAllGroups();   // Lấy tất cả nhóm
+    void sendAllUsers();    // Lấy tất cả users
     void sendGroupMembers(const QString &groupId);
-    void sendAllGroups();
     void sendFriendRequest(const QString &username);
     void sendFriendResponse(const QString &fromUser, bool accept);
     void sendFriendList();
@@ -39,6 +43,9 @@ public:
     void sendChatHistoryPrivate(const QString &targetUsername, int offset = 0, int limit = 10);
     void sendChatHistoryGroup(const QString &groupId, int offset = 0, int limit = 10);
     void sendMarkMessagesRead(const QString &senderUsername);
+    void sendFileUpload(const QString &target, bool isGroup, const QString &fileName, 
+                        qint64 fileSize, const QByteArray &fileData);
+    void sendFileDownload(const QString &fileName);
     
     void setToken(const QString &token) { m_token = token; }
     QString getToken() const { return m_token; }
@@ -54,13 +61,15 @@ signals:
     void changePasswordResponse(bool success, const QString &message);
     void groupCreated(bool success, const QString &message, const QString &groupId);
     void groupListReceived(const QStringList &groups);
-    void allGroupsReceived(const QList<QPair<QString, QString>> &groups);
+    void allGroupsReceived(const QList<QPair<QString, QString>> &groups); // groupId, display
+    void allGroupsListSimple(const QStringList &items); // "groupId|Group Name (N members)"
     void groupMembersReceived(const QString &groupId, const QString &groupName, 
                               const QList<QPair<QString, bool>> &members);
     void friendListReceived(const QList<QPair<QString, bool>> &friends);
+    void allUsersReceived(const QList<QPair<QString, QString>> &users);
     void pendingRequestsReceived(const QStringList &requests);
     
-    // Notification signals
+    // Notifications
     void privateMessageReceived(const QString &from, const QString &message);
     void groupMessageReceived(const QString &groupId, const QString &groupName, 
                               const QString &from, const QString &message);
@@ -70,16 +79,19 @@ signals:
     void friendOffline(const QString &username);
     void userJoinedGroup(const QString &groupId, const QString &username);
     void userLeftGroup(const QString &groupId, const QString &username);
-    
-    // Chat history signals
+
+    // Chat history
     void privateChatHistoryReceived(const QString &targetUsername, int totalCount, int offset,
                                     const QList<QMap<QString, QString>> &messages);
     void groupChatHistoryReceived(const QString &groupId, const QString &groupName,
                                   int totalCount, int offset,
                                   const QList<QMap<QString, QString>> &messages);
+
+    // Read status
+    void messagesReadNotification(const QString &readerUsername);
     
-    // Read status signals
-    void messagesReadNotification(const QString &readerUsername);  // When someone read our messages (1-1)
+    // File operations
+    void fileDownloadReceived(const QString &fileName, const QByteArray &fileData, qint64 fileSize);
 
 private slots:
     void onReadyRead();

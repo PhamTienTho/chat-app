@@ -59,8 +59,12 @@ private slots:
     void onJoinGroup();
     void onLeaveGroup();
     void onViewPendingRequests();
+    void onAttachFile();
     
-    // Group menu actions
+public slots:
+    void downloadFile(const QString &fileName);
+    
+private slots:
     void onViewGroupMembers();
     void onLeaveCurrentGroup();
     void onGroupMembersReceived(const QString &groupId, const QString &groupName,
@@ -89,6 +93,7 @@ private slots:
     
     // Read status slot
     void onMessagesReadNotification(const QString &readerUsername);
+    void onFileDownloadReceived(const QString &fileName, const QByteArray &fileData, qint64 fileSize);
 
 private:
     void setupUI();
@@ -99,6 +104,7 @@ private:
     void onEmojiClicked(const QString &emoji);
     void toggleEmojiPicker();
     void loadChatHistory();
+    QString formatFileSize(qint64 bytes);
     
     NetworkClient *m_client;
     QString m_username;
@@ -121,6 +127,7 @@ private:
     QLineEdit *m_messageInput;
     QPushButton *m_sendButton;
     QToolButton *m_emojiButton;
+    QToolButton *m_attachButton;
     QFrame *m_emojiPicker;
     QPushButton *m_loadMoreBtn;
     
@@ -133,6 +140,9 @@ private:
     
     // Track last message for "seen" status per user
     QMap<QString, bool> m_messageSeenStatus;  // target -> whether they've seen our last message
+    
+    // File download path
+    QString m_downloadPath;
 };
 
 #endif // CHATWIDGET_H
