@@ -17,6 +17,80 @@
 #include <QGridLayout>
 #include <QScrollArea>
 
+// ===== MessageBubble Implementation =====
+MessageBubble::MessageBubble(const QString &sender, const QString &message, const QString &time, 
+                             bool isMe, QWidget *parent)
+    : QWidget(parent), m_isMe(isMe), m_seenLabel(nullptr)
+{
+    QHBoxLayout *mainLayout = new QHBoxLayout(this);
+    mainLayout->setContentsMargins(10, 5, 10, 5);
+    
+    // Create bubble widget
+    QWidget *bubble = new QWidget;
+    QVBoxLayout *bubbleLayout = new QVBoxLayout(bubble);
+    bubbleLayout->setContentsMargins(14, 10, 14, 10);
+    bubbleLayout->setSpacing(4);
+    
+    // Sender name
+    QLabel *senderLabel = new QLabel(sender);
+    senderLabel->setStyleSheet(QString("color: %1; font-weight: bold; font-size: 14px;")
+                               .arg(isMe ? "#075E54" : "#128C7E"));
+    
+    // Message content
+    QLabel *messageLabel = new QLabel(message);
+    messageLabel->setWordWrap(true);
+    messageLabel->setStyleSheet("color: #1a1a1a; font-size: 15px;");
+    messageLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    
+    // Time
+    QLabel *timeLabel = new QLabel(time);
+    timeLabel->setStyleSheet("color: #888; font-size: 11px;");
+    timeLabel->setAlignment(isMe ? Qt::AlignRight : Qt::AlignLeft);
+    
+    bubbleLayout->addWidget(senderLabel);
+    bubbleLayout->addWidget(messageLabel);
+    bubbleLayout->addWidget(timeLabel);
+    
+    // Seen status (only for own messages)
+    if (isMe) {
+        m_seenLabel = new QLabel("");
+        m_seenLabel->setStyleSheet("color: #34B7F1; font-size: 11px;");
+        m_seenLabel->setAlignment(Qt::AlignRight);
+        m_seenLabel->setVisible(false);
+        bubbleLayout->addWidget(m_seenLabel);
+    }
+    
+    // Style the bubble
+    if (isMe) {
+        bubble->setStyleSheet(
+            "background-color: #DCF8C6; "
+            "border-radius: 18px; "
+            "border-top-right-radius: 5px;"
+        );
+        mainLayout->addStretch(1);
+        mainLayout->addWidget(bubble, 3);
+    } else {
+        bubble->setStyleSheet(
+            "background-color: #E8E8E8; "
+            "border-radius: 18px; "
+            "border-top-left-radius: 5px;"
+        );
+        mainLayout->addWidget(bubble, 3);
+        mainLayout->addStretch(1);
+    }
+    
+    bubble->setMaximumWidth(500);
+}
+
+void MessageBubble::setSeenStatus(bool seen)
+{
+    if (m_seenLabel && m_isMe) {
+        m_seenLabel->setText(seen ? "✓✓ Đã xem" : "");
+        m_seenLabel->setVisible(seen);
+    }
+}
+// ===== End MessageBubble =====
+
 ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *parent)
     : QWidget(parent), m_client(client), m_username(username), m_isChatWithGroup(false)
 {
@@ -291,14 +365,16 @@ void ChatWidget::setupUI()
     connect(m_loadMoreBtn, &QPushButton::clicked, this, &ChatWidget::onLoadMoreMessages);
     chatLayout->addWidget(m_loadMoreBtn);
     
-    // Chat display - use font that supports color emoji
-    m_chatDisplay = new QTextEdit;
-    m_chatDisplay->setReadOnly(true);
-    m_chatDisplay->setStyleSheet(
-        "QTextEdit { border: none; padding: 10px; font-size: 14px; "
-        "font-family: 'Noto Color Emoji', 'Segoe UI Emoji', sans-serif; "
-        "letter-spacing: 0px; word-spacing: 0px; }");
-    chatLayout->addWidget(m_chatDisplay);
+    // Chat display - using QListWidget for proper bubble styling
+    m_chatListWidget = new QListWidget;
+    m_chatListWidget->setStyleSheet(
+        "QListWidget { border: none; background-color: #f5f5f5; }"
+        "QListWidget::item { border: none; background: transparent; }");
+    m_chatListWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    m_chatListWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_chatListWidget->setSelectionMode(QAbstractItemView::NoSelection);
+    m_chatListWidget->setSpacing(2);
+    chatLayout->addWidget(m_chatListWidget);
     
     // Seen status label - hiển thị "Đã xem" bên phải
     m_seenStatusLabel = new QLabel;
@@ -518,7 +594,7 @@ void ChatWidget::onFriendSelected(QListWidgetItem *item)
     m_messageInput->setFocus();
     
     // Clear and load chat history from server
-    m_chatDisplay->clear();
+    m_chatListWidget->clear();
     m_currentOffset = 0;
     m_totalMessageCount = 0;
     m_loadMoreBtn->setVisible(false);
@@ -559,7 +635,7 @@ void ChatWidget::onGroupSelected(QListWidgetItem *item)
         m_seenStatusLabel->setVisible(false);
         
         // Clear and load chat history from server
-        m_chatDisplay->clear();
+        m_chatListWidget->clear();
         m_currentOffset = 0;
         m_totalMessageCount = 0;
         m_loadMoreBtn->setVisible(false);
@@ -586,44 +662,18 @@ void ChatWidget::appendMessage(const QString &sender, const QString &message, bo
 {
     QString time = QDateTime::currentDateTime().toString("hh:mm");
     
-    QString html;
-    if (isMe) {
-        // Tin nhắn của mình - căn phải, màu xanh lá nhạt
-        html = QString(
-            "<table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom: 12px;'><tr>"
-            "<td width='25%'></td>"
-            "<td width='75%' align='right'>"
-            "<div style='background-color: #DCF8C6; padding: 14px 18px; border-radius: 24px 24px 8px 24px; "
-            "margin: 0 10px; display: inline-block; text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,0.1);'>"
-            "<div style='color: #075E54; font-weight: bold; font-size: 15px; margin-bottom: 4px;'>%1</div>"
-            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.3; margin-bottom: 4px; letter-spacing: normal; word-spacing: normal;'>%2</div>"
-            "<div style='color: #888; font-size: 12px; text-align: right;'>%3</div>"
-            "</div></td></tr></table>"
-        ).arg(sender, message.toHtmlEscaped(), time);
-    } else {
-        // Tin nhắn người khác - căn trái, màu xám nhạt
-        html = QString(
-            "<table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom: 12px;'><tr>"
-            "<td width='75%' align='left'>"
-            "<div style='background-color: #E8E8E8; padding: 14px 18px; border-radius: 24px 24px 24px 8px; "
-            "margin: 0 10px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.08);'>"
-            "<div style='color: #128C7E; font-weight: bold; font-size: 15px; margin-bottom: 4px;'>%1</div>"
-            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.3; margin-bottom: 4px; letter-spacing: normal; word-spacing: normal;'>%2</div>"
-            "<div style='color: #888; font-size: 12px;'>%3</div>"
-            "</div></td>"
-            "<td width='25%'></td></tr></table>"
-        ).arg(sender, message.toHtmlEscaped(), time);
-    }
+    // Create message bubble widget
+    MessageBubble *bubble = new MessageBubble(sender, message, time, isMe);
     
-    m_chatDisplay->append(html);
+    // Create list item and set size
+    QListWidgetItem *item = new QListWidgetItem(m_chatListWidget);
+    item->setSizeHint(bubble->sizeHint());
     
-    // Save to history
-    QString key = m_isChatWithGroup ? "group_" + m_currentTarget : m_currentTarget;
-    m_chatHistory[key] = m_chatDisplay->toHtml();
+    m_chatListWidget->addItem(item);
+    m_chatListWidget->setItemWidget(item, bubble);
     
     // Scroll to bottom
-    QScrollBar *sb = m_chatDisplay->verticalScrollBar();
-    sb->setValue(sb->maximum());
+    m_chatListWidget->scrollToBottom();
     
     // Hide seen status and reset when sending a new message
     if (isMe && !m_isChatWithGroup) {
@@ -889,7 +939,7 @@ void ChatWidget::onLeaveCurrentGroup()
         m_isChatWithGroup = false;
         m_groupMenuBtn->setVisible(false);
         m_chatHeader->setText("Chon nguoi hoac nhom de chat");
-        m_chatDisplay->clear();
+        m_chatListWidget->clear();
         m_messageInput->setEnabled(false);
         m_sendButton->setEnabled(false);
         
@@ -1066,11 +1116,10 @@ void ChatWidget::onPrivateChatHistoryReceived(const QString &targetUsername, int
     m_currentOffset = offset + messages.size();
     
     // Messages come in DESC order (newest first), we need to reverse for display
-    // and prepend to top if loading older messages
     
     if (offset == 0) {
         // Initial load - clear and display (reverse order since DESC)
-        m_chatDisplay->clear();
+        m_chatListWidget->clear();
         for (int i = messages.size() - 1; i >= 0; i--) {
             const auto &msg = messages[i];
             QString sender = msg["from_username"];
@@ -1086,13 +1135,10 @@ void ChatWidget::onPrivateChatHistoryReceived(const QString &targetUsername, int
             
             prependMessage(sender, text, displayTime, isMe);
         }
+        m_chatListWidget->scrollToBottom();
     } else {
-        // Loading older messages - prepend to top
-        QString currentHtml = m_chatDisplay->toHtml();
-        m_chatDisplay->clear();
-        
-        // Add older messages first (in reverse order)
-        for (int i = messages.size() - 1; i >= 0; i--) {
+        // Loading older messages - insert at top
+        for (int i = 0; i < messages.size(); i++) {
             const auto &msg = messages[i];
             QString sender = msg["from_username"];
             QString text = msg["message"];
@@ -1104,21 +1150,17 @@ void ChatWidget::onPrivateChatHistoryReceived(const QString &targetUsername, int
                 displayTime = time.mid(11, 5);
             }
             
-            prependMessage(sender, text, displayTime, isMe);
+            // Insert at top
+            MessageBubble *bubble = new MessageBubble(sender, text, displayTime, isMe);
+            QListWidgetItem *item = new QListWidgetItem();
+            item->setSizeHint(bubble->sizeHint());
+            m_chatListWidget->insertItem(i, item);
+            m_chatListWidget->setItemWidget(item, bubble);
         }
-        
-        // Then restore current messages
-        m_chatDisplay->append(currentHtml);
     }
     
     // Show/hide load more button
     m_loadMoreBtn->setVisible(m_currentOffset < m_totalMessageCount);
-    
-    // Scroll to bottom only on initial load
-    if (offset == 0) {
-        QScrollBar *sb = m_chatDisplay->verticalScrollBar();
-        sb->setValue(sb->maximum());
-    }
 }
 
 void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QString &groupName,
@@ -1135,7 +1177,7 @@ void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QStrin
     
     if (offset == 0) {
         // Initial load
-        m_chatDisplay->clear();
+        m_chatListWidget->clear();
         for (int i = messages.size() - 1; i >= 0; i--) {
             const auto &msg = messages[i];
             QString sender = msg["from_username"];
@@ -1150,12 +1192,10 @@ void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QStrin
             
             prependMessage(sender, text, displayTime, isMe);
         }
+        m_chatListWidget->scrollToBottom();
     } else {
-        // Loading older messages
-        QString currentHtml = m_chatDisplay->toHtml();
-        m_chatDisplay->clear();
-        
-        for (int i = messages.size() - 1; i >= 0; i--) {
+        // Loading older messages - insert at top
+        for (int i = 0; i < messages.size(); i++) {
             const auto &msg = messages[i];
             QString sender = msg["from_username"];
             QString text = msg["message"];
@@ -1167,51 +1207,28 @@ void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QStrin
                 displayTime = time.mid(11, 5);
             }
             
-            prependMessage(sender, text, displayTime, isMe);
+            MessageBubble *bubble = new MessageBubble(sender, text, displayTime, isMe);
+            QListWidgetItem *item = new QListWidgetItem();
+            item->setSizeHint(bubble->sizeHint());
+            m_chatListWidget->insertItem(i, item);
+            m_chatListWidget->setItemWidget(item, bubble);
         }
-        
-        m_chatDisplay->append(currentHtml);
     }
     
     m_loadMoreBtn->setVisible(m_currentOffset < m_totalMessageCount);
-    
-    if (offset == 0) {
-        QScrollBar *sb = m_chatDisplay->verticalScrollBar();
-        sb->setValue(sb->maximum());
-    }
 }
 
 void ChatWidget::prependMessage(const QString &sender, const QString &message, const QString &time, bool isMe)
 {
-    QString html;
-    if (isMe) {
-        html = QString(
-            "<table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom: 12px;'><tr>"
-            "<td width='25%'></td>"
-            "<td width='75%' align='right'>"
-            "<div style='background-color: #DCF8C6; padding: 14px 18px; border-radius: 24px 24px 8px 24px; "
-            "margin: 0 10px; display: inline-block; text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,0.1);'>"
-            "<div style='color: #075E54; font-weight: bold; font-size: 15px; margin-bottom: 4px;'>%1</div>"
-            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.3; margin-bottom: 4px; letter-spacing: normal; word-spacing: normal;'>%2</div>"
-            "<div style='color: #888; font-size: 12px; text-align: right;'>%3</div>"
-            "</div></td></tr></table>"
-        ).arg(sender, message.toHtmlEscaped(), time);
-    } else {
-        // Tin nhắn người khác - màu xám nhạt
-        html = QString(
-            "<table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom: 12px;'><tr>"
-            "<td width='75%' align='left'>"
-            "<div style='background-color: #E8E8E8; padding: 14px 18px; border-radius: 24px 24px 24px 8px; "
-            "margin: 0 10px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.08);'>"
-            "<div style='color: #128C7E; font-weight: bold; font-size: 15px; margin-bottom: 4px;'>%1</div>"
-            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.3; margin-bottom: 4px; letter-spacing: normal; word-spacing: normal;'>%2</div>"
-            "<div style='color: #888; font-size: 12px;'>%3</div>"
-            "</div></td>"
-            "<td width='25%'></td></tr></table>"
-        ).arg(sender, message.toHtmlEscaped(), time);
-    }
+    // Create message bubble widget
+    MessageBubble *bubble = new MessageBubble(sender, message, time, isMe);
     
-    m_chatDisplay->append(html);
+    // Create list item and set size
+    QListWidgetItem *item = new QListWidgetItem();
+    item->setSizeHint(bubble->sizeHint());
+    
+    m_chatListWidget->addItem(item);
+    m_chatListWidget->setItemWidget(item, bubble);
 }
 
 void ChatWidget::onMessagesReadNotification(const QString &readerUsername)

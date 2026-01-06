@@ -745,7 +745,7 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
     string from_username = db->getUsername(user_id);
     string group_name = db->getGroupName(group_id);
     
-    // Save message
+    // Save to database
     db->saveGroupMessage(group_id, user_id, message);
     
     // Get all members
@@ -770,6 +770,7 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
             map<string, string> notify;
             notify["from_username"] = from_username;
             notify["group_id"] = group_id_str;
+            notify["group_name"] = group_name;
             notify["message"] = message;
             send_packet(member_socket, S_NOTIFY_MSG_GROUP, STATUS_OK, 
                        JsonHelper::build(notify));
@@ -871,7 +872,8 @@ void handle_chat_history_group(int client_socket, const map<string, string>& bod
     
     for (size_t i = 0; i < messages.size(); i++) {
         if (i > 0) json += ",";
-        json += "{\"from_username\":\"" + messages[i]["from_username"] + "\",";
+        json += "{\"message_id\":" + messages[i]["message_id"] + ",";
+        json += "\"from_username\":\"" + messages[i]["from_username"] + "\",";
         json += "\"message\":\"" + JsonHelper::escapeJson(messages[i]["message_text"]) + "\",";
         json += "\"sent_at\":\"" + messages[i]["sent_at"] + "\"}";
     }

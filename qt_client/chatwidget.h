@@ -15,9 +15,24 @@
 #include <QToolButton>
 #include <QMenu>
 #include <QGridLayout>
+#include <QScrollArea>
 
 class NetworkClient;
 class QFrame;
+
+// Custom widget for message bubble
+class MessageBubble : public QWidget
+{
+    Q_OBJECT
+public:
+    MessageBubble(const QString &sender, const QString &message, const QString &time, 
+                  bool isMe, QWidget *parent = nullptr);
+    void setSeenStatus(bool seen);
+    
+private:
+    bool m_isMe;
+    QLabel *m_seenLabel;
+};
 
 class ChatWidget : public QWidget
 {
@@ -100,7 +115,7 @@ private:
     QLabel *m_chatHeader;
     QToolButton *m_groupMenuBtn;
     QMenu *m_groupMenu;
-    QTextEdit *m_chatDisplay;
+    QListWidget *m_chatListWidget;  // Changed from QTextEdit to QListWidget
     QLabel *m_seenStatusLabel;  // Label hiển thị "Đã xem"
     QLineEdit *m_messageInput;
     QPushButton *m_sendButton;

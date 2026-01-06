@@ -77,7 +77,7 @@ signals:
                                   const QList<QMap<QString, QString>> &messages);
     
     // Read status signals
-    void messagesReadNotification(const QString &readerUsername);  // When someone read our messages
+    void messagesReadNotification(const QString &readerUsername);  // When someone read our messages (1-1)
 
 private slots:
     void onReadyRead();

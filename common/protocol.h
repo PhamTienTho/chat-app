@@ -67,7 +67,7 @@
 #define S_RESP_CHAT_HISTORY_PRIVATE 702   // Server trả về lịch sử chat 1-1
 #define C_REQ_CHAT_HISTORY_GROUP    703   // Client yêu cầu lịch sử chat nhóm
 #define S_RESP_CHAT_HISTORY_GROUP   704   // Server trả về lịch sử chat nhóm
-#define C_REQ_MARK_MESSAGES_READ    705   // Client đánh dấu đã đọc tin nhắn
+#define C_REQ_MARK_MESSAGES_READ    705   // Client đánh dấu đã đọc tin nhắn (1-1)
 #define S_NOTIFY_MESSAGES_READ      706   // Server báo người gửi tin nhắn đã được đọc
 
 // ===== NHÓM CHIA SẺ FILE (6xx) =====
