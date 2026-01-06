@@ -69,6 +69,7 @@ private slots:
     // Network responses
     void onFriendListReceived(const QList<QPair<QString, bool>> &friends);
     void onGroupListReceived(const QStringList &groups);
+    void onAllGroupsReceived(const QList<QPair<QString, QString>> &groups);
     void onPendingRequestsReceived(const QStringList &requests);
     void onPrivateMessage(const QString &from, const QString &message);
     void onGroupMessage(const QString &groupId, const QString &groupName,

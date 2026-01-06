@@ -1,12 +1,6 @@
 #include "networkclient.h"
-#include "chatwidget.h"
 #include <QDataStream>
 #include <QDebug>
-#include <QDialog>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QListWidget>
-#include <QPushButton>
 
 NetworkClient::NetworkClient(QObject *parent) : QObject(parent)
 {
@@ -207,73 +201,6 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
             break;
         }
         
-        case S_RESP_ALL_GROUPS: {
-            QList<QPair<QString, QString>> groups;
-            // Parse groups array from JSON
-            int start = jsonStr.indexOf('[');
-            int end = jsonStr.lastIndexOf(']');
-            if (start != -1 && end != -1) {
-                QString listStr = jsonStr.mid(start + 1, end - start - 1);
-                // Parse each group object
-                int pos = 0;
-                while ((pos = listStr.indexOf("{\"group_id\":", pos)) != -1) {
-                    int idStart = listStr.indexOf('"', pos + 12) + 1;
-                    int idEnd = listStr.indexOf('"', idStart);
-                    QString groupId = listStr.mid(idStart, idEnd - idStart);
-                    
-                    int namePos = listStr.indexOf("\"group_name\":", idEnd);
-                    int nameStart = listStr.indexOf('"', namePos + 13) + 1;
-                    int nameEnd = listStr.indexOf('"', nameStart);
-                    QString groupName = listStr.mid(nameStart, nameEnd - nameStart);
-                    
-                    int countPos = listStr.indexOf("\"member_count\":", nameEnd);
-                    int countStart = listStr.indexOf('"', countPos + 15) + 1;
-                    int countEnd = listStr.indexOf('"', countStart);
-                    QString memberCount = listStr.mid(countStart, countEnd - countStart);
-                    
-                    QString displayText = groupName + " (" + memberCount + " members)";
-                    groups.append(qMakePair(groupId, displayText));
-                    pos = countEnd + 1;
-                }
-            }
-            
-            // Show dialog directly instead of using signals
-            QDialog dialog;
-            dialog.setWindowTitle("Chọn nhóm để tham gia");
-            dialog.resize(400, 300);
-            
-            QVBoxLayout *layout = new QVBoxLayout(&dialog);
-            QListWidget *listWidget = new QListWidget(&dialog);
-            
-            for (const auto &group : groups) {
-                listWidget->addItem(group.first + " - " + group.second);
-            }
-            
-            layout->addWidget(listWidget);
-            
-            QHBoxLayout *buttonLayout = new QHBoxLayout;
-            QPushButton *joinBtn = new QPushButton("Tham gia");
-            QPushButton *cancelBtn = new QPushButton("Hủy");
-            buttonLayout->addWidget(joinBtn);
-            buttonLayout->addWidget(cancelBtn);
-            layout->addLayout(buttonLayout);
-            
-            QObject::connect(cancelBtn, &QPushButton::clicked, &dialog, &QDialog::reject);
-            QObject::connect(joinBtn, &QPushButton::clicked, [this, &dialog, &listWidget, &groups]() {
-                if (listWidget->currentRow() >= 0) {
-                    QString groupId = groups[listWidget->currentRow()].first;
-                    QMap<QString, QString> body;
-                    body["token"] = m_token;
-                    body["group_id"] = groupId;
-                    sendPacket(C_REQ_GROUP_JOIN, body);
-                    dialog.accept();
-                }
-            });
-            
-            dialog.exec();
-            break;
-        }
-        
         case S_RESP_GROUP_MEMBERS: {
             QString groupId = data.value("group_id");
             QString groupName = data.value("group_name");
@@ -301,99 +228,6 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
                 }
             }
             emit groupMembersReceived(groupId, groupName, members);
-            break;
-        }
-        
-        case S_RESP_CHAT_HISTORY_PRIVATE: {
-            QString targetUser = data.value("target_username");
-            int totalCount = data.value("total_count", "0").toInt();
-            int offset = data.value("offset", "0").toInt();
-            QList<QMap<QString, QString>> messages;
-            
-            // Parse messages array
-            int start = jsonStr.indexOf('[');
-            int end = jsonStr.lastIndexOf(']');
-            if (start != -1 && end != -1) {
-                QString listStr = jsonStr.mid(start + 1, end - start - 1);
-                int pos = 0;
-                while ((pos = listStr.indexOf("{", pos)) != -1) {
-                    QMap<QString, QString> msg;
-                    
-                    int fromPos = listStr.indexOf("\"from_username\":", pos);
-                    if (fromPos != -1) {
-                        int fromStart = listStr.indexOf('"', fromPos + 16) + 1;
-                        int fromEnd = listStr.indexOf('"', fromStart);
-                        msg["from_username"] = listStr.mid(fromStart, fromEnd - fromStart);
-                    }
-                    
-                    int msgPos = listStr.indexOf("\"message\":", pos);
-                    if (msgPos != -1) {
-                        int msgStart = listStr.indexOf('"', msgPos + 10) + 1;
-                        int msgEnd = listStr.indexOf('"', msgStart);
-                        msg["message"] = listStr.mid(msgStart, msgEnd - msgStart);
-                    }
-                    
-                    int timePos = listStr.indexOf("\"sent_at\":", pos);
-                    if (timePos != -1) {
-                        int timeStart = listStr.indexOf('"', timePos + 10) + 1;
-                        int timeEnd = listStr.indexOf('"', timeStart);
-                        msg["sent_at"] = listStr.mid(timeStart, timeEnd - timeStart);
-                    }
-                    
-                    messages.append(msg);
-                    int endObj = listStr.indexOf("}", pos);
-                    if (endObj == -1) break;
-                    pos = endObj + 1;
-                }
-            }
-            emit privateChatHistoryReceived(targetUser, totalCount, offset, messages);
-            break;
-        }
-        
-        case S_RESP_CHAT_HISTORY_GROUP: {
-            QString groupId = data.value("group_id");
-            QString groupName = data.value("group_name", "");
-            int totalCount = data.value("total_count", "0").toInt();
-            int offset = data.value("offset", "0").toInt();
-            QList<QMap<QString, QString>> messages;
-            
-            // Parse messages array
-            int start = jsonStr.indexOf('[');
-            int end = jsonStr.lastIndexOf(']');
-            if (start != -1 && end != -1) {
-                QString listStr = jsonStr.mid(start + 1, end - start - 1);
-                int pos = 0;
-                while ((pos = listStr.indexOf("{", pos)) != -1) {
-                    QMap<QString, QString> msg;
-                    
-                    int fromPos = listStr.indexOf("\"from_username\":", pos);
-                    if (fromPos != -1) {
-                        int fromStart = listStr.indexOf('"', fromPos + 16) + 1;
-                        int fromEnd = listStr.indexOf('"', fromStart);
-                        msg["from_username"] = listStr.mid(fromStart, fromEnd - fromStart);
-                    }
-                    
-                    int msgPos = listStr.indexOf("\"message\":", pos);
-                    if (msgPos != -1) {
-                        int msgStart = listStr.indexOf('"', msgPos + 10) + 1;
-                        int msgEnd = listStr.indexOf('"', msgStart);
-                        msg["message"] = listStr.mid(msgStart, msgEnd - msgStart);
-                    }
-                    
-                    int timePos = listStr.indexOf("\"sent_at\":", pos);
-                    if (timePos != -1) {
-                        int timeStart = listStr.indexOf('"', timePos + 10) + 1;
-                        int timeEnd = listStr.indexOf('"', timeStart);
-                        msg["sent_at"] = listStr.mid(timeStart, timeEnd - timeStart);
-                    }
-                    
-                    messages.append(msg);
-                    int endObj = listStr.indexOf("}", pos);
-                    if (endObj == -1) break;
-                    pos = endObj + 1;
-                }
-            }
-            emit groupChatHistoryReceived(groupId, groupName, totalCount, offset, messages);
             break;
         }
             
@@ -476,6 +310,127 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
         case S_NOTIFY_GROUP_LEAVE:
             emit userLeftGroup(data.value("group_id"), data.value("username"));
             break;
+            
+        case S_RESP_CHAT_HISTORY_PRIVATE:
+        {
+            QString targetUsername = data.value("target_username");
+            int totalCount = data.value("total_count").toInt();
+            int offset = data.value("offset").toInt();
+            
+            // Parse messages array from raw JSON
+            QString jsonStr = QString::fromUtf8(body);
+            QList<QMap<QString, QString>> messages;
+            
+            // Simple parsing for messages array
+            int msgStart = jsonStr.indexOf("\"messages\":[");
+            if (msgStart != -1) {
+                int arrStart = jsonStr.indexOf('[', msgStart);
+                int arrEnd = jsonStr.lastIndexOf(']');
+                QString msgArr = jsonStr.mid(arrStart + 1, arrEnd - arrStart - 1);
+                
+                // Parse each message object
+                int pos = 0;
+                while ((pos = msgArr.indexOf('{', pos)) != -1) {
+                    int endPos = msgArr.indexOf('}', pos);
+                    if (endPos == -1) break;
+                    QString msgObj = msgArr.mid(pos, endPos - pos + 1);
+                    
+                    QMap<QString, QString> msg;
+                    // Extract from_username
+                    int idx = msgObj.indexOf("\"from_username\":\"");
+                    if (idx != -1) {
+                        int start = idx + 17;
+                        int end = msgObj.indexOf('"', start);
+                        msg["from_username"] = msgObj.mid(start, end - start);
+                    }
+                    // Extract message
+                    idx = msgObj.indexOf("\"message\":\"");
+                    if (idx != -1) {
+                        int start = idx + 11;
+                        int end = msgObj.indexOf("\",", start);
+                        if (end == -1) end = msgObj.indexOf("\"}", start);
+                        msg["message"] = msgObj.mid(start, end - start);
+                    }
+                    // Extract sent_at
+                    idx = msgObj.indexOf("\"sent_at\":\"");
+                    if (idx != -1) {
+                        int start = idx + 11;
+                        int end = msgObj.indexOf('"', start);
+                        msg["sent_at"] = msgObj.mid(start, end - start);
+                    }
+                    
+                    if (!msg.isEmpty()) {
+                        messages.append(msg);
+                    }
+                    pos = endPos + 1;
+                }
+            }
+            
+            emit privateChatHistoryReceived(targetUsername, totalCount, offset, messages);
+            break;
+        }
+        
+        case S_RESP_CHAT_HISTORY_GROUP:
+        {
+            QString groupId = data.value("group_id");
+            QString groupName = data.value("group_name");
+            int totalCount = data.value("total_count").toInt();
+            int offset = data.value("offset").toInt();
+            
+            // Parse messages array from raw JSON
+            QString jsonStr = QString::fromUtf8(body);
+            QList<QMap<QString, QString>> messages;
+            
+            int msgStart = jsonStr.indexOf("\"messages\":[");
+            if (msgStart != -1) {
+                int arrStart = jsonStr.indexOf('[', msgStart);
+                int arrEnd = jsonStr.lastIndexOf(']');
+                QString msgArr = jsonStr.mid(arrStart + 1, arrEnd - arrStart - 1);
+                
+                int pos = 0;
+                while ((pos = msgArr.indexOf('{', pos)) != -1) {
+                    int endPos = msgArr.indexOf('}', pos);
+                    if (endPos == -1) break;
+                    QString msgObj = msgArr.mid(pos, endPos - pos + 1);
+                    
+                    QMap<QString, QString> msg;
+                    int idx = msgObj.indexOf("\"from_username\":\"");
+                    if (idx != -1) {
+                        int start = idx + 17;
+                        int end = msgObj.indexOf('"', start);
+                        msg["from_username"] = msgObj.mid(start, end - start);
+                    }
+                    idx = msgObj.indexOf("\"message\":\"");
+                    if (idx != -1) {
+                        int start = idx + 11;
+                        int end = msgObj.indexOf("\",", start);
+                        if (end == -1) end = msgObj.indexOf("\"}", start);
+                        msg["message"] = msgObj.mid(start, end - start);
+                    }
+                    idx = msgObj.indexOf("\"sent_at\":\"");
+                    if (idx != -1) {
+                        int start = idx + 11;
+                        int end = msgObj.indexOf('"', start);
+                        msg["sent_at"] = msgObj.mid(start, end - start);
+                    }
+                    
+                    if (!msg.isEmpty()) {
+                        messages.append(msg);
+                    }
+                    pos = endPos + 1;
+                }
+            }
+            
+            emit groupChatHistoryReceived(groupId, groupName, totalCount, offset, messages);
+            break;
+        }
+        
+        case S_NOTIFY_MESSAGES_READ:
+        {
+            QString readerUsername = data.value("reader_username");
+            emit messagesReadNotification(readerUsername);
+            break;
+        }
     }
 }
 
@@ -628,10 +583,3 @@ void NetworkClient::sendChatHistoryGroup(const QString &groupId, int offset, int
     sendPacket(C_REQ_CHAT_HISTORY_GROUP, body);
 }
 
-void NetworkClient::sendMarkMessagesRead(const QString &senderUsername)
-{
-    QMap<QString, QString> body;
-    body["token"] = m_token;
-    body["sender_username"] = senderUsername;
-    sendPacket(C_REQ_MARK_MESSAGES_READ, body);
-}

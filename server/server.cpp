@@ -550,6 +550,37 @@ void handle_group_list(int client_socket, const map<string, string>& body) {
     cout << "✓ Sent group list to user_id " << user_id << " (" << groups.size() << " groups)" << endl;
 }
 
+
+void handle_all_groups(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["error"] = "Unauthorized";
+        send_packet(client_socket, S_RESP_ALL_GROUPS, STATUS_UNAUTHORIZED, 
+                   JsonHelper::build(resp));
+        return;
+    }
+    
+    vector<map<string, string>> all_groups = db->getAllGroups();
+    pthread_mutex_unlock(&db_mutex);
+    
+    string json_resp = "{\"groups\":[";
+    for (size_t i = 0; i < all_groups.size(); i++) {
+        if (i > 0) json_resp += ",";
+        json_resp += "{\"group_id\":\"" + all_groups[i]["group_id"] + "\",";
+        json_resp += "\"group_name\":\"" + all_groups[i]["group_name"] + "\",";
+        json_resp += "\"member_count\":\"" + all_groups[i]["member_count"] + "\"}";
+    }
+    json_resp += "]}";
+    
+    send_packet(client_socket, S_RESP_ALL_GROUPS, STATUS_OK, json_resp);
+    
+    cout << "✓ Sent all groups list to user_id " << user_id << " (" << all_groups.size() << " groups)" << endl;
+}
 void handle_group_leave(int client_socket, const map<string, string>& body) {
     string token = body.count("token") ? body.at("token") : "";
     string group_id_str = body.count("group_id") ? body.at("group_id") : "";
@@ -978,6 +1009,9 @@ void* handle_client(void* arg) {
                 break;
             case C_REQ_GROUP_LIST:
                 handle_group_list(client_socket, body);
+                break;
+            case C_REQ_ALL_GROUPS:
+                handle_all_groups(client_socket, body);
                 break;
             case C_REQ_GROUP_MEMBERS:
                 handle_group_members(client_socket, body);

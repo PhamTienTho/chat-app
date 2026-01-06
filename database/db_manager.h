@@ -71,6 +71,8 @@ public:
     bool isGroupMember(int group_id, int user_id);
     vector<int> getGroupMembers(int group_id);
     vector<map<string, string>> getUserGroups(int user_id);
+    vector<map<string, string>> getAllGroups();
+    vector<map<string, string>> getAllUsers();
     string getGroupName(int group_id);
     
     // Message operations

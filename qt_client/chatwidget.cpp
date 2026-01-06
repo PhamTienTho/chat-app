@@ -711,14 +711,72 @@ void ChatWidget::onCreateGroup()
 
 void ChatWidget::onJoinGroup()
 {
-    QString groupId = QInputDialog::getText(this, "Tham gia nhóm", "Nhập Group ID:");
-    if (!groupId.isEmpty()) {
-        m_client->sendJoinGroup(groupId);
-        QMessageBox::information(this, "Thành công", "Đã gửi yêu cầu tham gia nhóm");
-        m_client->sendGroupList();
-    }
+    qDebug() << "onJoinGroup called - requesting all groups";
+    m_client->sendAllGroups();
 }
 
+void ChatWidget::onAllGroupsReceived(const QList<QPair<QString, QString>> &groups)
+{
+    qDebug() << "onAllGroupsReceived called with" << groups.size() << "groups";
+    if (groups.isEmpty()) {
+        QMessageBox::information(this, "Tham gia nhóm", "Không có nhóm nào trong hệ thống");
+        return;
+    }
+    
+    QDialog dialog(this);
+    dialog.setWindowTitle("Chọn nhóm để tham gia");
+    dialog.setMinimumWidth(400);
+    
+    QVBoxLayout *layout = new QVBoxLayout(&dialog);
+    QLabel *label = new QLabel("Chọn nhóm bạn muốn tham gia:");
+    layout->addWidget(label);
+    
+    QListWidget *listWidget = new QListWidget;
+    listWidget->setStyleSheet(
+        "QListWidget { background-color: white; border: 1px solid #ddd; }"
+        "QListWidget::item { padding: 10px; border-bottom: 1px solid #eee; }"
+        "QListWidget::item:hover { background-color: #e3f2fd; }"
+        "QListWidget::item:selected { background-color: #2196F3; color: white; }");
+    
+    for (const auto &group : groups) {
+        QListWidgetItem *item = new QListWidgetItem(group.second);
+        item->setData(Qt::UserRole, group.first);
+        listWidget->addItem(item);
+    }
+    layout->addWidget(listWidget);
+    
+    QHBoxLayout *buttonLayout = new QHBoxLayout;
+    QPushButton *joinBtn = new QPushButton("Tham gia");
+    QPushButton *cancelBtn = new QPushButton("Hủy");
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(joinBtn);
+    buttonLayout->addWidget(cancelBtn);
+    layout->addLayout(buttonLayout);
+    
+    connect(joinBtn, &QPushButton::clicked, [&]() {
+        QListWidgetItem *selected = listWidget->currentItem();
+        if (selected) {
+            QString groupId = selected->data(Qt::UserRole).toString();
+            m_client->sendJoinGroup(groupId);
+            QMessageBox::information(&dialog, "Thành công", "Đã gửi yêu cầu tham gia nhóm");
+            m_client->sendGroupList();
+            dialog.accept();
+        } else {
+            QMessageBox::warning(&dialog, "Lỗi", "Vui lòng chọn nhóm");
+        }
+    });
+    
+    connect(cancelBtn, &QPushButton::clicked, &dialog, &QDialog::reject);
+    connect(listWidget, &QListWidget::itemDoubleClicked, [&](QListWidgetItem *item) {
+        QString groupId = item->data(Qt::UserRole).toString();
+        m_client->sendJoinGroup(groupId);
+        QMessageBox::information(&dialog, "Thành công", "Đã gửi yêu cầu tham gia nhóm");
+        m_client->sendGroupList();
+        dialog.accept();
+    });
+    
+    dialog.exec();
+}
 void ChatWidget::onLeaveGroup()
 {
     QListWidgetItem *item = m_groupsList->currentItem();

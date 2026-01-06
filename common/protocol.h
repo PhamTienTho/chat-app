@@ -62,6 +62,8 @@
 #define C_REQ_GROUP_MEMBERS 511   // Client yêu cầu danh sách thành viên nhóm
 #define S_RESP_GROUP_MEMBERS 512  // Server trả về danh sách thành viên nhóm
 
+#define C_REQ_ALL_GROUPS    513   // Client yêu cầu danh sách TẤT CẢ nhóm
+#define S_RESP_ALL_GROUPS   514   // Server trả về danh sách tất cả nhóm
 // ===== NHÓM LỊCH SỬ CHAT (7xx) =====
 #define C_REQ_CHAT_HISTORY_PRIVATE  701   // Client yêu cầu lịch sử chat 1-1
 #define S_RESP_CHAT_HISTORY_PRIVATE 702   // Server trả về lịch sử chat 1-1

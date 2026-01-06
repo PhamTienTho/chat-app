@@ -701,3 +701,52 @@ vector<int> DBManager::getUnreadMessageSenders(int user_id) {
     mysql_free_result(result);
     return senders;
 }
+
+// ===== ALL GROUPS AND USERS =====
+
+vector<map<string, string>> DBManager::getAllGroups() {
+    string query = "SELECT g.group_id, g.group_name, g.creator_id, "
+                   "(SELECT COUNT(*) FROM group_members WHERE group_id=g.group_id) as member_count "
+                   "FROM `groups` g ORDER BY group_name";
+    
+    vector<map<string, string>> groups;
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return groups;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(result))) {
+        map<string, string> group;
+        group["group_id"] = row[0];
+        group["group_name"] = row[1];
+        group["creator_id"] = row[2];
+        group["member_count"] = row[3];
+        groups.push_back(group);
+    }
+    mysql_free_result(result);
+    return groups;
+}
+
+vector<map<string, string>> DBManager::getAllUsers() {
+    string query = "SELECT user_id, username, is_online FROM users ORDER BY username";
+    
+    vector<map<string, string>> users;
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return users;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(result))) {
+        map<string, string> user;
+        user["user_id"] = row[0];
+        user["username"] = row[1];
+        user["is_online"] = row[2];
+        users.push_back(user);
+    }
+    mysql_free_result(result);
+    return users;
+}

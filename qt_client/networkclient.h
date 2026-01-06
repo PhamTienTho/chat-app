@@ -29,6 +29,7 @@ public:
     void sendLeaveGroup(const QString &groupId);
     void sendGroupList();
     void sendGroupMembers(const QString &groupId);
+    void sendAllGroups();
     void sendFriendRequest(const QString &username);
     void sendFriendResponse(const QString &fromUser, bool accept);
     void sendFriendList();
@@ -53,6 +54,7 @@ signals:
     void changePasswordResponse(bool success, const QString &message);
     void groupCreated(bool success, const QString &message, const QString &groupId);
     void groupListReceived(const QStringList &groups);
+    void allGroupsReceived(const QList<QPair<QString, QString>> &groups);
     void groupMembersReceived(const QString &groupId, const QString &groupName, 
                               const QList<QPair<QString, bool>> &members);
     void friendListReceived(const QList<QPair<QString, bool>> &friends);
