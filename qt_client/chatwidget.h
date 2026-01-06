@@ -62,14 +62,27 @@ private slots:
     void onFriendAccepted(const QString &username);
     void onFriendOnline(const QString &username);
     void onFriendOffline(const QString &username);
+    
+    // Chat history slots
+    void onLoadMoreMessages();
+    void onPrivateChatHistoryReceived(const QString &targetUsername, int totalCount, int offset,
+                                       const QList<QMap<QString, QString>> &messages);
+    void onGroupChatHistoryReceived(const QString &groupId, const QString &groupName,
+                                     int totalCount, int offset,
+                                     const QList<QMap<QString, QString>> &messages);
+    
+    // Read status slot
+    void onMessagesReadNotification(const QString &readerUsername);
 
 private:
     void setupUI();
     void setupEmojiPicker();
     void appendMessage(const QString &sender, const QString &message, bool isMe = false);
+    void prependMessage(const QString &sender, const QString &message, const QString &time, bool isMe = false);
     void showNotification(const QString &title, const QString &message);
     void onEmojiClicked(const QString &emoji);
     void toggleEmojiPicker();
+    void loadChatHistory();
     
     NetworkClient *m_client;
     QString m_username;
@@ -88,13 +101,22 @@ private:
     QToolButton *m_groupMenuBtn;
     QMenu *m_groupMenu;
     QTextEdit *m_chatDisplay;
+    QLabel *m_seenStatusLabel;  // Label hiển thị "Đã xem"
     QLineEdit *m_messageInput;
     QPushButton *m_sendButton;
     QToolButton *m_emojiButton;
     QFrame *m_emojiPicker;
+    QPushButton *m_loadMoreBtn;
+    
+    // Chat history tracking
+    int m_currentOffset;
+    int m_totalMessageCount;
     
     // Store chat history per target
     QMap<QString, QString> m_chatHistory;
+    
+    // Track last message for "seen" status per user
+    QMap<QString, bool> m_messageSeenStatus;  // target -> whether they've seen our last message
 };
 
 #endif // CHATWIDGET_H

@@ -310,6 +310,127 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
         case S_NOTIFY_GROUP_LEAVE:
             emit userLeftGroup(data.value("group_id"), data.value("username"));
             break;
+            
+        case S_RESP_CHAT_HISTORY_PRIVATE:
+        {
+            QString targetUsername = data.value("target_username");
+            int totalCount = data.value("total_count").toInt();
+            int offset = data.value("offset").toInt();
+            
+            // Parse messages array from raw JSON
+            QString jsonStr = QString::fromUtf8(body);
+            QList<QMap<QString, QString>> messages;
+            
+            // Simple parsing for messages array
+            int msgStart = jsonStr.indexOf("\"messages\":[");
+            if (msgStart != -1) {
+                int arrStart = jsonStr.indexOf('[', msgStart);
+                int arrEnd = jsonStr.lastIndexOf(']');
+                QString msgArr = jsonStr.mid(arrStart + 1, arrEnd - arrStart - 1);
+                
+                // Parse each message object
+                int pos = 0;
+                while ((pos = msgArr.indexOf('{', pos)) != -1) {
+                    int endPos = msgArr.indexOf('}', pos);
+                    if (endPos == -1) break;
+                    QString msgObj = msgArr.mid(pos, endPos - pos + 1);
+                    
+                    QMap<QString, QString> msg;
+                    // Extract from_username
+                    int idx = msgObj.indexOf("\"from_username\":\"");
+                    if (idx != -1) {
+                        int start = idx + 17;
+                        int end = msgObj.indexOf('"', start);
+                        msg["from_username"] = msgObj.mid(start, end - start);
+                    }
+                    // Extract message
+                    idx = msgObj.indexOf("\"message\":\"");
+                    if (idx != -1) {
+                        int start = idx + 11;
+                        int end = msgObj.indexOf("\",", start);
+                        if (end == -1) end = msgObj.indexOf("\"}", start);
+                        msg["message"] = msgObj.mid(start, end - start);
+                    }
+                    // Extract sent_at
+                    idx = msgObj.indexOf("\"sent_at\":\"");
+                    if (idx != -1) {
+                        int start = idx + 11;
+                        int end = msgObj.indexOf('"', start);
+                        msg["sent_at"] = msgObj.mid(start, end - start);
+                    }
+                    
+                    if (!msg.isEmpty()) {
+                        messages.append(msg);
+                    }
+                    pos = endPos + 1;
+                }
+            }
+            
+            emit privateChatHistoryReceived(targetUsername, totalCount, offset, messages);
+            break;
+        }
+        
+        case S_RESP_CHAT_HISTORY_GROUP:
+        {
+            QString groupId = data.value("group_id");
+            QString groupName = data.value("group_name");
+            int totalCount = data.value("total_count").toInt();
+            int offset = data.value("offset").toInt();
+            
+            // Parse messages array from raw JSON
+            QString jsonStr = QString::fromUtf8(body);
+            QList<QMap<QString, QString>> messages;
+            
+            int msgStart = jsonStr.indexOf("\"messages\":[");
+            if (msgStart != -1) {
+                int arrStart = jsonStr.indexOf('[', msgStart);
+                int arrEnd = jsonStr.lastIndexOf(']');
+                QString msgArr = jsonStr.mid(arrStart + 1, arrEnd - arrStart - 1);
+                
+                int pos = 0;
+                while ((pos = msgArr.indexOf('{', pos)) != -1) {
+                    int endPos = msgArr.indexOf('}', pos);
+                    if (endPos == -1) break;
+                    QString msgObj = msgArr.mid(pos, endPos - pos + 1);
+                    
+                    QMap<QString, QString> msg;
+                    int idx = msgObj.indexOf("\"from_username\":\"");
+                    if (idx != -1) {
+                        int start = idx + 17;
+                        int end = msgObj.indexOf('"', start);
+                        msg["from_username"] = msgObj.mid(start, end - start);
+                    }
+                    idx = msgObj.indexOf("\"message\":\"");
+                    if (idx != -1) {
+                        int start = idx + 11;
+                        int end = msgObj.indexOf("\",", start);
+                        if (end == -1) end = msgObj.indexOf("\"}", start);
+                        msg["message"] = msgObj.mid(start, end - start);
+                    }
+                    idx = msgObj.indexOf("\"sent_at\":\"");
+                    if (idx != -1) {
+                        int start = idx + 11;
+                        int end = msgObj.indexOf('"', start);
+                        msg["sent_at"] = msgObj.mid(start, end - start);
+                    }
+                    
+                    if (!msg.isEmpty()) {
+                        messages.append(msg);
+                    }
+                    pos = endPos + 1;
+                }
+            }
+            
+            emit groupChatHistoryReceived(groupId, groupName, totalCount, offset, messages);
+            break;
+        }
+        
+        case S_NOTIFY_MESSAGES_READ:
+        {
+            QString readerUsername = data.value("reader_username");
+            emit messagesReadNotification(readerUsername);
+            break;
+        }
     }
 }
 
@@ -433,4 +554,32 @@ void NetworkClient::sendChangePassword(const QString &oldPassword, const QString
     body["old_password"] = oldPassword;
     body["new_password"] = newPassword;
     sendPacket(C_REQ_CHANGE_PASS, body);
+}
+
+void NetworkClient::sendChatHistoryPrivate(const QString &targetUsername, int offset, int limit)
+{
+    QMap<QString, QString> body;
+    body["token"] = m_token;
+    body["target_username"] = targetUsername;
+    body["offset"] = QString::number(offset);
+    body["limit"] = QString::number(limit);
+    sendPacket(C_REQ_CHAT_HISTORY_PRIVATE, body);
+}
+
+void NetworkClient::sendChatHistoryGroup(const QString &groupId, int offset, int limit)
+{
+    QMap<QString, QString> body;
+    body["token"] = m_token;
+    body["group_id"] = groupId;
+    body["offset"] = QString::number(offset);
+    body["limit"] = QString::number(limit);
+    sendPacket(C_REQ_CHAT_HISTORY_GROUP, body);
+}
+
+void NetworkClient::sendMarkMessagesRead(const QString &fromUsername)
+{
+    QMap<QString, QString> body;
+    body["token"] = m_token;
+    body["from_username"] = fromUsername;
+    sendPacket(C_REQ_MARK_MESSAGES_READ, body);
 }

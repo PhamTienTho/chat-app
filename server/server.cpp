@@ -782,6 +782,150 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
     cout << "✓ Group message: " << from_username << " -> " << group_name << endl;
 }
 
+// ===== CHAT HISTORY HANDLERS =====
+
+void handle_chat_history_private(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string target_username = body.count("target_username") ? body.at("target_username") : "";
+    int offset = body.count("offset") ? atoi(body.at("offset").c_str()) : 0;
+    int limit = body.count("limit") ? atoi(body.at("limit").c_str()) : 10;
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    int target_user_id = db->getUserId(target_username);
+    if (target_user_id == -1) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    string my_username = db->getUsername(user_id);
+    
+    // Get messages and total count
+    vector<map<string, string>> messages = db->getPrivateMessages(user_id, target_user_id, limit, offset);
+    int total_count = db->getPrivateMessageCount(user_id, target_user_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Build response JSON with is_read status
+    string json = "{\"target_username\":\"" + target_username + "\",";
+    json += "\"my_username\":\"" + my_username + "\",";
+    json += "\"total_count\":" + to_string(total_count) + ",";
+    json += "\"offset\":" + to_string(offset) + ",";
+    json += "\"messages\":[";
+    
+    for (size_t i = 0; i < messages.size(); i++) {
+        if (i > 0) json += ",";
+        json += "{\"from_username\":\"" + messages[i]["from_username"] + "\",";
+        json += "\"message\":\"" + JsonHelper::escapeJson(messages[i]["message_text"]) + "\",";
+        json += "\"sent_at\":\"" + messages[i]["sent_at"] + "\",";
+        json += "\"is_read\":\"" + messages[i]["is_read"] + "\"}";
+    }
+    json += "]}";
+    
+    send_packet(client_socket, S_RESP_CHAT_HISTORY_PRIVATE, STATUS_OK, json);
+    cout << "✓ Sent private chat history: " << messages.size() << " messages (offset=" << offset << ")" << endl;
+}
+
+void handle_chat_history_group(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string group_id_str = body.count("group_id") ? body.at("group_id") : "";
+    int offset = body.count("offset") ? atoi(body.at("offset").c_str()) : 0;
+    int limit = body.count("limit") ? atoi(body.at("limit").c_str()) : 10;
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    int group_id = atoi(group_id_str.c_str());
+    if (group_id <= 0) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    // Check if user is member
+    if (!db->isGroupMember(group_id, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    string group_name = db->getGroupName(group_id);
+    
+    // Get messages and total count
+    vector<map<string, string>> messages = db->getGroupMessages(group_id, limit, offset);
+    int total_count = db->getGroupMessageCount(group_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Build response JSON
+    string json = "{\"group_id\":\"" + group_id_str + "\",";
+    json += "\"group_name\":\"" + group_name + "\",";
+    json += "\"total_count\":" + to_string(total_count) + ",";
+    json += "\"offset\":" + to_string(offset) + ",";
+    json += "\"messages\":[";
+    
+    for (size_t i = 0; i < messages.size(); i++) {
+        if (i > 0) json += ",";
+        json += "{\"from_username\":\"" + messages[i]["from_username"] + "\",";
+        json += "\"message\":\"" + JsonHelper::escapeJson(messages[i]["message_text"]) + "\",";
+        json += "\"sent_at\":\"" + messages[i]["sent_at"] + "\"}";
+    }
+    json += "]}";
+    
+    send_packet(client_socket, S_RESP_CHAT_HISTORY_GROUP, STATUS_OK, json);
+    cout << "✓ Sent group chat history: " << messages.size() << " messages (offset=" << offset << ")" << endl;
+}
+
+void handle_mark_messages_read(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string sender_username = body.count("from_username") ? body.at("from_username") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    int sender_id = db->getUserId(sender_username);
+    if (sender_id == -1) {
+        pthread_mutex_unlock(&db_mutex);
+        return;
+    }
+    
+    // Mark all messages from sender to current user as read
+    bool updated = db->markAllMessagesAsRead(sender_id, user_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    if (updated) {
+        // Notify sender that their messages have been read
+        pthread_mutex_lock(&clients_mutex);
+        if (username_to_socket.count(sender_username)) {
+            int sender_socket = username_to_socket[sender_username];
+            pthread_mutex_unlock(&clients_mutex);
+            
+            string my_username = "";
+            pthread_mutex_lock(&db_mutex);
+            my_username = db->getUsername(user_id);
+            pthread_mutex_unlock(&db_mutex);
+            
+            map<string, string> notify;
+            notify["reader_username"] = my_username;
+            send_packet(sender_socket, S_NOTIFY_MESSAGES_READ, STATUS_OK, 
+                       JsonHelper::build(notify));
+            
+            cout << "✓ Notified " << sender_username << " that messages were read by " << my_username << endl;
+        } else {
+            pthread_mutex_unlock(&clients_mutex);
+        }
+    }
+}
+
 // ===== CLIENT HANDLER =====
 
 void* handle_client(void* arg) {
@@ -856,6 +1000,15 @@ void* handle_client(void* arg) {
                 break;
             case C_REQ_MSG_GROUP:
                 handle_msg_group(client_socket, body);
+                break;
+            case C_REQ_CHAT_HISTORY_PRIVATE:
+                handle_chat_history_private(client_socket, body);
+                break;
+            case C_REQ_CHAT_HISTORY_GROUP:
+                handle_chat_history_group(client_socket, body);
+                break;
+            case C_REQ_MARK_MESSAGES_READ:
+                handle_mark_messages_read(client_socket, body);
                 break;
             default:
                 cout << "⚠ Unknown command: " << header.command << endl;

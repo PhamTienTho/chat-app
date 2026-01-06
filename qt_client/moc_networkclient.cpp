@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_NetworkClient_t {
-    QByteArrayData data[39];
-    char stringdata0[537];
+    QByteArrayData data[48];
+    char stringdata0[701];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -67,11 +67,20 @@ QT_MOC_LITERAL(30, 404, 12), // "friendOnline"
 QT_MOC_LITERAL(31, 417, 13), // "friendOffline"
 QT_MOC_LITERAL(32, 431, 15), // "userJoinedGroup"
 QT_MOC_LITERAL(33, 447, 13), // "userLeftGroup"
-QT_MOC_LITERAL(34, 461, 11), // "onReadyRead"
-QT_MOC_LITERAL(35, 473, 11), // "onConnected"
-QT_MOC_LITERAL(36, 485, 14), // "onDisconnected"
-QT_MOC_LITERAL(37, 500, 7), // "onError"
-QT_MOC_LITERAL(38, 508, 28) // "QAbstractSocket::SocketError"
+QT_MOC_LITERAL(34, 461, 26), // "privateChatHistoryReceived"
+QT_MOC_LITERAL(35, 488, 14), // "targetUsername"
+QT_MOC_LITERAL(36, 503, 10), // "totalCount"
+QT_MOC_LITERAL(37, 514, 6), // "offset"
+QT_MOC_LITERAL(38, 521, 29), // "QList<QMap<QString,QString> >"
+QT_MOC_LITERAL(39, 551, 8), // "messages"
+QT_MOC_LITERAL(40, 560, 24), // "groupChatHistoryReceived"
+QT_MOC_LITERAL(41, 585, 24), // "messagesReadNotification"
+QT_MOC_LITERAL(42, 610, 14), // "readerUsername"
+QT_MOC_LITERAL(43, 625, 11), // "onReadyRead"
+QT_MOC_LITERAL(44, 637, 11), // "onConnected"
+QT_MOC_LITERAL(45, 649, 14), // "onDisconnected"
+QT_MOC_LITERAL(46, 664, 7), // "onError"
+QT_MOC_LITERAL(47, 672, 28) // "QAbstractSocket::SocketError"
 
     },
     "NetworkClient\0connected\0\0disconnected\0"
@@ -87,9 +96,13 @@ QT_MOC_LITERAL(38, 508, 28) // "QAbstractSocket::SocketError"
     "groupMessageReceived\0friendRequestReceived\0"
     "friendAccepted\0username\0friendOnline\0"
     "friendOffline\0userJoinedGroup\0"
-    "userLeftGroup\0onReadyRead\0onConnected\0"
-    "onDisconnected\0onError\0"
-    "QAbstractSocket::SocketError"
+    "userLeftGroup\0privateChatHistoryReceived\0"
+    "targetUsername\0totalCount\0offset\0"
+    "QList<QMap<QString,QString> >\0messages\0"
+    "groupChatHistoryReceived\0"
+    "messagesReadNotification\0readerUsername\0"
+    "onReadyRead\0onConnected\0onDisconnected\0"
+    "onError\0QAbstractSocket::SocketError"
 };
 #undef QT_MOC_LITERAL
 
@@ -99,39 +112,42 @@ static const uint qt_meta_data_NetworkClient[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      23,   14, // methods
+      26,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-      19,       // signalCount
+      22,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  129,    2, 0x06 /* Public */,
-       3,    0,  130,    2, 0x06 /* Public */,
-       4,    1,  131,    2, 0x06 /* Public */,
-       6,    3,  134,    2, 0x06 /* Public */,
-      10,    2,  141,    2, 0x06 /* Public */,
-      11,    2,  146,    2, 0x06 /* Public */,
-      12,    3,  151,    2, 0x06 /* Public */,
-      14,    1,  158,    2, 0x06 /* Public */,
-      16,    3,  161,    2, 0x06 /* Public */,
-      20,    1,  168,    2, 0x06 /* Public */,
-      22,    1,  171,    2, 0x06 /* Public */,
-      24,    2,  174,    2, 0x06 /* Public */,
-      26,    4,  179,    2, 0x06 /* Public */,
-      27,    1,  188,    2, 0x06 /* Public */,
-      28,    1,  191,    2, 0x06 /* Public */,
-      30,    1,  194,    2, 0x06 /* Public */,
-      31,    1,  197,    2, 0x06 /* Public */,
-      32,    2,  200,    2, 0x06 /* Public */,
-      33,    2,  205,    2, 0x06 /* Public */,
+       1,    0,  144,    2, 0x06 /* Public */,
+       3,    0,  145,    2, 0x06 /* Public */,
+       4,    1,  146,    2, 0x06 /* Public */,
+       6,    3,  149,    2, 0x06 /* Public */,
+      10,    2,  156,    2, 0x06 /* Public */,
+      11,    2,  161,    2, 0x06 /* Public */,
+      12,    3,  166,    2, 0x06 /* Public */,
+      14,    1,  173,    2, 0x06 /* Public */,
+      16,    3,  176,    2, 0x06 /* Public */,
+      20,    1,  183,    2, 0x06 /* Public */,
+      22,    1,  186,    2, 0x06 /* Public */,
+      24,    2,  189,    2, 0x06 /* Public */,
+      26,    4,  194,    2, 0x06 /* Public */,
+      27,    1,  203,    2, 0x06 /* Public */,
+      28,    1,  206,    2, 0x06 /* Public */,
+      30,    1,  209,    2, 0x06 /* Public */,
+      31,    1,  212,    2, 0x06 /* Public */,
+      32,    2,  215,    2, 0x06 /* Public */,
+      33,    2,  220,    2, 0x06 /* Public */,
+      34,    4,  225,    2, 0x06 /* Public */,
+      40,    5,  234,    2, 0x06 /* Public */,
+      41,    1,  245,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-      34,    0,  210,    2, 0x08 /* Private */,
-      35,    0,  211,    2, 0x08 /* Private */,
-      36,    0,  212,    2, 0x08 /* Private */,
-      37,    1,  213,    2, 0x08 /* Private */,
+      43,    0,  248,    2, 0x08 /* Private */,
+      44,    0,  249,    2, 0x08 /* Private */,
+      45,    0,  250,    2, 0x08 /* Private */,
+      46,    1,  251,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -153,12 +169,15 @@ static const uint qt_meta_data_NetworkClient[] = {
     QMetaType::Void, QMetaType::QString,   29,
     QMetaType::Void, QMetaType::QString, QMetaType::QString,   13,   29,
     QMetaType::Void, QMetaType::QString, QMetaType::QString,   13,   29,
+    QMetaType::Void, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 38,   35,   36,   37,   39,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 38,   13,   17,   36,   37,   39,
+    QMetaType::Void, QMetaType::QString,   42,
 
  // slots: parameters
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, 0x80000000 | 38,    5,
+    QMetaType::Void, 0x80000000 | 47,    5,
 
        0        // eod
 };
@@ -188,16 +207,19 @@ void NetworkClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
         case 16: _t->friendOffline((*reinterpret_cast< const QString(*)>(_a[1]))); break;
         case 17: _t->userJoinedGroup((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
         case 18: _t->userLeftGroup((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
-        case 19: _t->onReadyRead(); break;
-        case 20: _t->onConnected(); break;
-        case 21: _t->onDisconnected(); break;
-        case 22: _t->onError((*reinterpret_cast< QAbstractSocket::SocketError(*)>(_a[1]))); break;
+        case 19: _t->privateChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[4]))); break;
+        case 20: _t->groupChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< int(*)>(_a[4])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[5]))); break;
+        case 21: _t->messagesReadNotification((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 22: _t->onReadyRead(); break;
+        case 23: _t->onConnected(); break;
+        case 24: _t->onDisconnected(); break;
+        case 25: _t->onError((*reinterpret_cast< QAbstractSocket::SocketError(*)>(_a[1]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         switch (_id) {
         default: *reinterpret_cast<int*>(_a[0]) = -1; break;
-        case 22:
+        case 25:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<int*>(_a[0]) = -1; break;
             case 0:
@@ -340,6 +362,27 @@ void NetworkClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
                 return;
             }
         }
+        {
+            using _t = void (NetworkClient::*)(const QString & , int , int , const QList<QMap<QString,QString>> & );
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::privateChatHistoryReceived)) {
+                *result = 19;
+                return;
+            }
+        }
+        {
+            using _t = void (NetworkClient::*)(const QString & , const QString & , int , int , const QList<QMap<QString,QString>> & );
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::groupChatHistoryReceived)) {
+                *result = 20;
+                return;
+            }
+        }
+        {
+            using _t = void (NetworkClient::*)(const QString & );
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::messagesReadNotification)) {
+                *result = 21;
+                return;
+            }
+        }
     }
 }
 
@@ -372,13 +415,13 @@ int NetworkClient::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 23)
+        if (_id < 26)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 23;
+        _id -= 26;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 23)
+        if (_id < 26)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 23;
+        _id -= 26;
     }
     return _id;
 }
@@ -512,6 +555,27 @@ void NetworkClient::userLeftGroup(const QString & _t1, const QString & _t2)
 {
     void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))) };
     QMetaObject::activate(this, &staticMetaObject, 18, _a);
+}
+
+// SIGNAL 19
+void NetworkClient::privateChatHistoryReceived(const QString & _t1, int _t2, int _t3, const QList<QMap<QString,QString>> & _t4)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t4))) };
+    QMetaObject::activate(this, &staticMetaObject, 19, _a);
+}
+
+// SIGNAL 20
+void NetworkClient::groupChatHistoryReceived(const QString & _t1, const QString & _t2, int _t3, int _t4, const QList<QMap<QString,QString>> & _t5)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t4))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t5))) };
+    QMetaObject::activate(this, &staticMetaObject, 20, _a);
+}
+
+// SIGNAL 21
+void NetworkClient::messagesReadNotification(const QString & _t1)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))) };
+    QMetaObject::activate(this, &staticMetaObject, 21, _a);
 }
 QT_WARNING_POP
 QT_END_MOC_NAMESPACE

@@ -62,6 +62,14 @@
 #define C_REQ_GROUP_MEMBERS 511   // Client yêu cầu danh sách thành viên nhóm
 #define S_RESP_GROUP_MEMBERS 512  // Server trả về danh sách thành viên nhóm
 
+// ===== NHÓM LỊCH SỬ CHAT (7xx) =====
+#define C_REQ_CHAT_HISTORY_PRIVATE  701   // Client yêu cầu lịch sử chat 1-1
+#define S_RESP_CHAT_HISTORY_PRIVATE 702   // Server trả về lịch sử chat 1-1
+#define C_REQ_CHAT_HISTORY_GROUP    703   // Client yêu cầu lịch sử chat nhóm
+#define S_RESP_CHAT_HISTORY_GROUP   704   // Server trả về lịch sử chat nhóm
+#define C_REQ_MARK_MESSAGES_READ    705   // Client đánh dấu đã đọc tin nhắn
+#define S_NOTIFY_MESSAGES_READ      706   // Server báo người gửi tin nhắn đã được đọc
+
 // ===== NHÓM CHIA SẺ FILE (6xx) =====
 #define C_REQ_FILE_UPLOAD   601   // Client "xin phép" được tải file lên
 #define S_RESP_FILE_OK      602   // Server đồng ý, trả về file_id để Client bắt đầu gửi

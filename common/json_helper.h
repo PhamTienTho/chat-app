@@ -15,6 +15,23 @@ using namespace std;
 
 class JsonHelper {
 public:
+    // Escape special characters for JSON string
+    static string escapeJson(const string& str) {
+        string result;
+        result.reserve(str.length() * 2);
+        for (char c : str) {
+            switch (c) {
+                case '"': result += "\\\""; break;
+                case '\\': result += "\\\\"; break;
+                case '\n': result += "\\n"; break;
+                case '\r': result += "\\r"; break;
+                case '\t': result += "\\t"; break;
+                default: result += c;
+            }
+        }
+        return result;
+    }
+    
     // Parse JSON string thành map
     static map<string, string> parse(const string& json_str) {
         map<string, string> result;

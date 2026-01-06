@@ -572,13 +572,58 @@ bool DBManager::saveGroupMessage(int group_id, int from_user_id, const string& m
     return true;
 }
 
-vector<map<string, string>> DBManager::getPrivateMessages(int user_id1, int user_id2, int limit) {
-    string query = "SELECT m.message_id, u.username AS from_username, m.message_text, m.sent_at "
+vector<map<string, string>> DBManager::getPrivateMessages(int user_id1, int user_id2, int limit, int offset) {
+    string query = "SELECT m.message_id, u.username AS from_username, m.message_text, m.sent_at, m.is_read "
                    "FROM private_messages m "
                    "JOIN users u ON m.from_user_id=u.user_id "
                    "WHERE (m.from_user_id=" + to_string(user_id1) + " AND m.to_user_id=" + to_string(user_id2) + ") "
                    "OR (m.from_user_id=" + to_string(user_id2) + " AND m.to_user_id=" + to_string(user_id1) + ") "
-                   "ORDER BY m.sent_at DESC LIMIT " + to_string(limit);
+                   "ORDER BY m.sent_at DESC LIMIT " + to_string(limit) + " OFFSET " + to_string(offset);
+    
+    vector<map<string, string>> messages;
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return messages;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(result))) {
+        map<string, string> msg;
+        msg["message_id"] = row[0];
+        msg["from_username"] = row[1];
+        msg["message_text"] = row[2];
+        msg["sent_at"] = row[3];
+        msg["is_read"] = row[4] ? row[4] : "0";
+        messages.push_back(msg);
+    }
+    mysql_free_result(result);
+    return messages;
+}
+
+int DBManager::getPrivateMessageCount(int user_id1, int user_id2) {
+    string query = "SELECT COUNT(*) FROM private_messages "
+                   "WHERE (from_user_id=" + to_string(user_id1) + " AND to_user_id=" + to_string(user_id2) + ") "
+                   "OR (from_user_id=" + to_string(user_id2) + " AND to_user_id=" + to_string(user_id1) + ")";
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return 0;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int count = row ? atoi(row[0]) : 0;
+    mysql_free_result(result);
+    return count;
+}
+
+vector<map<string, string>> DBManager::getGroupMessages(int group_id, int limit, int offset) {
+    string query = "SELECT m.message_id, u.username AS from_username, m.message_text, m.sent_at "
+                   "FROM group_messages m "
+                   "JOIN users u ON m.from_user_id=u.user_id "
+                   "WHERE m.group_id=" + to_string(group_id) + " "
+                   "ORDER BY m.sent_at DESC LIMIT " + to_string(limit) + " OFFSET " + to_string(offset);
     
     vector<map<string, string>> messages;
     if (mysql_query(conn, query.c_str())) {
@@ -600,31 +645,19 @@ vector<map<string, string>> DBManager::getPrivateMessages(int user_id1, int user
     return messages;
 }
 
-vector<map<string, string>> DBManager::getGroupMessages(int group_id, int limit) {
-    string query = "SELECT m.message_id, u.username AS from_username, m.message_text, m.sent_at "
-                   "FROM group_messages m "
-                   "JOIN users u ON m.from_user_id=u.user_id "
-                   "WHERE m.group_id=" + to_string(group_id) + " "
-                   "ORDER BY m.sent_at DESC LIMIT " + to_string(limit);
+int DBManager::getGroupMessageCount(int group_id) {
+    string query = "SELECT COUNT(*) FROM group_messages WHERE group_id=" + to_string(group_id);
     
-    vector<map<string, string>> messages;
     if (mysql_query(conn, query.c_str())) {
         printError();
-        return messages;
+        return 0;
     }
     
     MYSQL_RES* result = mysql_store_result(conn);
-    MYSQL_ROW row;
-    while ((row = mysql_fetch_row(result))) {
-        map<string, string> msg;
-        msg["message_id"] = row[0];
-        msg["from_username"] = row[1];
-        msg["message_text"] = row[2];
-        msg["sent_at"] = row[3];
-        messages.push_back(msg);
-    }
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int count = row ? atoi(row[0]) : 0;
     mysql_free_result(result);
-    return messages;
+    return count;
 }
 
 bool DBManager::markMessageAsRead(int message_id) {
@@ -635,4 +668,36 @@ bool DBManager::markMessageAsRead(int message_id) {
         return false;
     }
     return true;
+}
+
+bool DBManager::markAllMessagesAsRead(int from_user_id, int to_user_id) {
+    // Mark all unread messages from sender to receiver as read
+    string query = "UPDATE private_messages SET is_read=1 WHERE from_user_id=" + 
+                   to_string(from_user_id) + " AND to_user_id=" + to_string(to_user_id) + 
+                   " AND is_read=0";
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return false;
+    }
+    return mysql_affected_rows(conn) > 0;
+}
+
+vector<int> DBManager::getUnreadMessageSenders(int user_id) {
+    vector<int> senders;
+    string query = "SELECT DISTINCT from_user_id FROM private_messages WHERE to_user_id=" + 
+                   to_string(user_id) + " AND is_read=0";
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return senders;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(result))) {
+        senders.push_back(atoi(row[0]));
+    }
+    mysql_free_result(result);
+    return senders;
 }

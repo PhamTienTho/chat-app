@@ -76,9 +76,13 @@ public:
     // Message operations
     bool savePrivateMessage(int from_user_id, int to_user_id, const string& message);
     bool saveGroupMessage(int group_id, int from_user_id, const string& message);
-    vector<map<string, string>> getPrivateMessages(int user_id1, int user_id2, int limit = 50);
-    vector<map<string, string>> getGroupMessages(int group_id, int limit = 50);
+    vector<map<string, string>> getPrivateMessages(int user_id1, int user_id2, int limit = 10, int offset = 0);
+    vector<map<string, string>> getGroupMessages(int group_id, int limit = 10, int offset = 0);
+    int getPrivateMessageCount(int user_id1, int user_id2);
+    int getGroupMessageCount(int group_id);
     bool markMessageAsRead(int message_id);
+    bool markAllMessagesAsRead(int from_user_id, int to_user_id);  // Mark all messages from sender as read
+    vector<int> getUnreadMessageSenders(int user_id);  // Get list of senders with unread messages
     
     // Utility
     string escapeString(const string& str);

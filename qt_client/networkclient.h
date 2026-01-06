@@ -35,6 +35,9 @@ public:
     void sendPendingRequests();
     void sendUnfriend(const QString &username);
     void sendChangePassword(const QString &oldPassword, const QString &newPassword);
+    void sendChatHistoryPrivate(const QString &targetUsername, int offset = 0, int limit = 10);
+    void sendChatHistoryGroup(const QString &groupId, int offset = 0, int limit = 10);
+    void sendMarkMessagesRead(const QString &senderUsername);
     
     void setToken(const QString &token) { m_token = token; }
     QString getToken() const { return m_token; }
@@ -65,6 +68,16 @@ signals:
     void friendOffline(const QString &username);
     void userJoinedGroup(const QString &groupId, const QString &username);
     void userLeftGroup(const QString &groupId, const QString &username);
+    
+    // Chat history signals
+    void privateChatHistoryReceived(const QString &targetUsername, int totalCount, int offset,
+                                    const QList<QMap<QString, QString>> &messages);
+    void groupChatHistoryReceived(const QString &groupId, const QString &groupName,
+                                  int totalCount, int offset,
+                                  const QList<QMap<QString, QString>> &messages);
+    
+    // Read status signals
+    void messagesReadNotification(const QString &readerUsername);  // When someone read our messages
 
 private slots:
     void onReadyRead();

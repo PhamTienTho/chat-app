@@ -34,6 +34,13 @@ ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *
     connect(m_client, &NetworkClient::friendOffline, this, &ChatWidget::onFriendOffline);
     connect(m_client, &NetworkClient::groupMembersReceived, this, &ChatWidget::onGroupMembersReceived);
     connect(m_client, &NetworkClient::changePasswordResponse, this, &ChatWidget::onChangePasswordResponse);
+    connect(m_client, &NetworkClient::privateChatHistoryReceived, this, &ChatWidget::onPrivateChatHistoryReceived);
+    connect(m_client, &NetworkClient::groupChatHistoryReceived, this, &ChatWidget::onGroupChatHistoryReceived);
+    connect(m_client, &NetworkClient::messagesReadNotification, this, &ChatWidget::onMessagesReadNotification);
+    
+    // Initialize tracking variables
+    m_currentOffset = 0;
+    m_totalMessageCount = 0;
     
     // Initial data load
     m_client->sendFriendList();
@@ -274,11 +281,32 @@ void ChatWidget::setupUI()
     
     chatLayout->addWidget(headerWidget);
     
+    // Load more button (hidden by default)
+    m_loadMoreBtn = new QPushButton("📜 Tải tin nhắn cũ hơn...");
+    m_loadMoreBtn->setStyleSheet(
+        "QPushButton { background-color: #f0f0f0; color: #666; padding: 8px; "
+        "border: 1px solid #ddd; border-radius: 8px; font-size: 13px; }"
+        "QPushButton:hover { background-color: #e0e0e0; }");
+    m_loadMoreBtn->setVisible(false);
+    connect(m_loadMoreBtn, &QPushButton::clicked, this, &ChatWidget::onLoadMoreMessages);
+    chatLayout->addWidget(m_loadMoreBtn);
+    
     // Chat display - use font that supports color emoji
     m_chatDisplay = new QTextEdit;
     m_chatDisplay->setReadOnly(true);
-    m_chatDisplay->setStyleSheet("border: none; padding: 10px; font-size: 14px; font-family: 'Noto Color Emoji', 'Segoe UI Emoji', sans-serif;");
+    m_chatDisplay->setStyleSheet(
+        "QTextEdit { border: none; padding: 10px; font-size: 14px; "
+        "font-family: 'Noto Color Emoji', 'Segoe UI Emoji', sans-serif; "
+        "letter-spacing: 0px; word-spacing: 0px; }");
     chatLayout->addWidget(m_chatDisplay);
+    
+    // Seen status label - hiển thị "Đã xem" bên phải
+    m_seenStatusLabel = new QLabel;
+    m_seenStatusLabel->setAlignment(Qt::AlignRight);
+    m_seenStatusLabel->setStyleSheet(
+        "QLabel { color: #34B7F1; font-size: 12px; padding: 2px 15px; }");
+    m_seenStatusLabel->setVisible(false);
+    chatLayout->addWidget(m_seenStatusLabel);
     
     // Message input area
     QHBoxLayout *inputLayout = new QHBoxLayout;
@@ -489,8 +517,24 @@ void ChatWidget::onFriendSelected(QListWidgetItem *item)
     m_emojiButton->setEnabled(true);
     m_messageInput->setFocus();
     
-    // Load chat history
-    m_chatDisplay->setHtml(m_chatHistory.value(username, ""));
+    // Clear and load chat history from server
+    m_chatDisplay->clear();
+    m_currentOffset = 0;
+    m_totalMessageCount = 0;
+    m_loadMoreBtn->setVisible(false);
+    
+    // Show/hide seen status based on stored state
+    if (m_messageSeenStatus.value(username, false)) {
+        m_seenStatusLabel->setText("✓✓ Đã xem");
+        m_seenStatusLabel->setVisible(true);
+    } else {
+        m_seenStatusLabel->setVisible(false);
+    }
+    
+    m_client->sendChatHistoryPrivate(username, 0, 10);
+    
+    // Mark messages from this user as read
+    m_client->sendMarkMessagesRead(username);
 }
 
 void ChatWidget::onGroupSelected(QListWidgetItem *item)
@@ -511,8 +555,15 @@ void ChatWidget::onGroupSelected(QListWidgetItem *item)
         m_emojiButton->setEnabled(true);
         m_messageInput->setFocus();
         
-        // Load chat history
-        m_chatDisplay->setHtml(m_chatHistory.value("group_" + m_currentTarget, ""));
+        // Hide seen status for group chat
+        m_seenStatusLabel->setVisible(false);
+        
+        // Clear and load chat history from server
+        m_chatDisplay->clear();
+        m_currentOffset = 0;
+        m_totalMessageCount = 0;
+        m_loadMoreBtn->setVisible(false);
+        m_client->sendChatHistoryGroup(m_currentTarget, 0, 10);
     }
 }
 
@@ -544,20 +595,20 @@ void ChatWidget::appendMessage(const QString &sender, const QString &message, bo
             "<td width='75%' align='right'>"
             "<div style='background-color: #DCF8C6; padding: 14px 18px; border-radius: 24px 24px 8px 24px; "
             "margin: 0 10px; display: inline-block; text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,0.1);'>"
-            "<div style='color: #075E54; font-weight: bold; font-size: 15px; margin-bottom: 6px;'>%1</div>"
-            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.5; margin-bottom: 6px;'>%2</div>"
+            "<div style='color: #075E54; font-weight: bold; font-size: 15px; margin-bottom: 4px;'>%1</div>"
+            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.3; margin-bottom: 4px; letter-spacing: normal; word-spacing: normal;'>%2</div>"
             "<div style='color: #888; font-size: 12px; text-align: right;'>%3</div>"
             "</div></td></tr></table>"
         ).arg(sender, message.toHtmlEscaped(), time);
     } else {
-        // Tin nhắn người khác - căn trái, màu trắng
+        // Tin nhắn người khác - căn trái, màu xám nhạt
         html = QString(
             "<table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom: 12px;'><tr>"
             "<td width='75%' align='left'>"
-            "<div style='background-color: #FFFFFF; padding: 14px 18px; border-radius: 24px 24px 24px 8px; "
-            "margin: 0 10px; display: inline-block; border: 1px solid #E0E0E0; box-shadow: 0 1px 2px rgba(0,0,0,0.08);'>"
-            "<div style='color: #128C7E; font-weight: bold; font-size: 15px; margin-bottom: 6px;'>%1</div>"
-            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.5; margin-bottom: 6px;'>%2</div>"
+            "<div style='background-color: #E8E8E8; padding: 14px 18px; border-radius: 24px 24px 24px 8px; "
+            "margin: 0 10px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.08);'>"
+            "<div style='color: #128C7E; font-weight: bold; font-size: 15px; margin-bottom: 4px;'>%1</div>"
+            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.3; margin-bottom: 4px; letter-spacing: normal; word-spacing: normal;'>%2</div>"
             "<div style='color: #888; font-size: 12px;'>%3</div>"
             "</div></td>"
             "<td width='25%'></td></tr></table>"
@@ -573,6 +624,12 @@ void ChatWidget::appendMessage(const QString &sender, const QString &message, bo
     // Scroll to bottom
     QScrollBar *sb = m_chatDisplay->verticalScrollBar();
     sb->setValue(sb->maximum());
+    
+    // Hide seen status and reset when sending a new message
+    if (isMe && !m_isChatWithGroup) {
+        m_messageSeenStatus[m_currentTarget] = false;
+        m_seenStatusLabel->setVisible(false);
+    }
 }
 
 void ChatWidget::onRefreshFriends()
@@ -696,9 +753,11 @@ void ChatWidget::onPendingRequestsReceived(const QStringList &requests)
 
 void ChatWidget::onPrivateMessage(const QString &from, const QString &message)
 {
-    // If chatting with this person, show in chat
+    // If chatting with this person, show in chat and mark as read
     if (m_currentTarget == from && !m_isChatWithGroup) {
         appendMessage(from, message, false);
+        // Mark message as read since we're viewing this chat
+        m_client->sendMarkMessagesRead(from);
     } else {
         // Save to history and show notification
         QString key = from;
@@ -971,5 +1030,198 @@ void ChatWidget::onChangePasswordResponse(bool success, const QString &message)
         QMessageBox::information(this, "Success", "Password changed successfully!");
     } else {
         QMessageBox::warning(this, "Error", message.isEmpty() ? "Failed to change password" : message);
+    }
+}
+
+void ChatWidget::loadChatHistory()
+{
+    if (m_currentTarget.isEmpty()) return;
+    
+    if (m_isChatWithGroup) {
+        m_client->sendChatHistoryGroup(m_currentTarget, m_currentOffset, 10);
+    } else {
+        m_client->sendChatHistoryPrivate(m_currentTarget, m_currentOffset, 10);
+    }
+}
+
+void ChatWidget::onLoadMoreMessages()
+{
+    if (m_currentTarget.isEmpty()) return;
+    
+    // Request next batch of messages
+    if (m_isChatWithGroup) {
+        m_client->sendChatHistoryGroup(m_currentTarget, m_currentOffset, 10);
+    } else {
+        m_client->sendChatHistoryPrivate(m_currentTarget, m_currentOffset, 10);
+    }
+}
+
+void ChatWidget::onPrivateChatHistoryReceived(const QString &targetUsername, int totalCount, int offset,
+                                              const QList<QMap<QString, QString>> &messages)
+{
+    // Make sure this is for the current chat
+    if (targetUsername != m_currentTarget || m_isChatWithGroup) return;
+    
+    m_totalMessageCount = totalCount;
+    m_currentOffset = offset + messages.size();
+    
+    // Messages come in DESC order (newest first), we need to reverse for display
+    // and prepend to top if loading older messages
+    
+    if (offset == 0) {
+        // Initial load - clear and display (reverse order since DESC)
+        m_chatDisplay->clear();
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            const auto &msg = messages[i];
+            QString sender = msg["from_username"];
+            QString text = msg["message"];
+            QString time = msg["sent_at"];
+            bool isMe = (sender == m_username);
+            
+            // Format time
+            QString displayTime = time;
+            if (time.length() >= 16) {
+                displayTime = time.mid(11, 5);  // Extract HH:MM
+            }
+            
+            prependMessage(sender, text, displayTime, isMe);
+        }
+    } else {
+        // Loading older messages - prepend to top
+        QString currentHtml = m_chatDisplay->toHtml();
+        m_chatDisplay->clear();
+        
+        // Add older messages first (in reverse order)
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            const auto &msg = messages[i];
+            QString sender = msg["from_username"];
+            QString text = msg["message"];
+            QString time = msg["sent_at"];
+            bool isMe = (sender == m_username);
+            
+            QString displayTime = time;
+            if (time.length() >= 16) {
+                displayTime = time.mid(11, 5);
+            }
+            
+            prependMessage(sender, text, displayTime, isMe);
+        }
+        
+        // Then restore current messages
+        m_chatDisplay->append(currentHtml);
+    }
+    
+    // Show/hide load more button
+    m_loadMoreBtn->setVisible(m_currentOffset < m_totalMessageCount);
+    
+    // Scroll to bottom only on initial load
+    if (offset == 0) {
+        QScrollBar *sb = m_chatDisplay->verticalScrollBar();
+        sb->setValue(sb->maximum());
+    }
+}
+
+void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QString &groupName,
+                                            int totalCount, int offset,
+                                            const QList<QMap<QString, QString>> &messages)
+{
+    Q_UNUSED(groupName);
+    
+    // Make sure this is for the current chat
+    if (groupId != m_currentTarget || !m_isChatWithGroup) return;
+    
+    m_totalMessageCount = totalCount;
+    m_currentOffset = offset + messages.size();
+    
+    if (offset == 0) {
+        // Initial load
+        m_chatDisplay->clear();
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            const auto &msg = messages[i];
+            QString sender = msg["from_username"];
+            QString text = msg["message"];
+            QString time = msg["sent_at"];
+            bool isMe = (sender == m_username);
+            
+            QString displayTime = time;
+            if (time.length() >= 16) {
+                displayTime = time.mid(11, 5);
+            }
+            
+            prependMessage(sender, text, displayTime, isMe);
+        }
+    } else {
+        // Loading older messages
+        QString currentHtml = m_chatDisplay->toHtml();
+        m_chatDisplay->clear();
+        
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            const auto &msg = messages[i];
+            QString sender = msg["from_username"];
+            QString text = msg["message"];
+            QString time = msg["sent_at"];
+            bool isMe = (sender == m_username);
+            
+            QString displayTime = time;
+            if (time.length() >= 16) {
+                displayTime = time.mid(11, 5);
+            }
+            
+            prependMessage(sender, text, displayTime, isMe);
+        }
+        
+        m_chatDisplay->append(currentHtml);
+    }
+    
+    m_loadMoreBtn->setVisible(m_currentOffset < m_totalMessageCount);
+    
+    if (offset == 0) {
+        QScrollBar *sb = m_chatDisplay->verticalScrollBar();
+        sb->setValue(sb->maximum());
+    }
+}
+
+void ChatWidget::prependMessage(const QString &sender, const QString &message, const QString &time, bool isMe)
+{
+    QString html;
+    if (isMe) {
+        html = QString(
+            "<table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom: 12px;'><tr>"
+            "<td width='25%'></td>"
+            "<td width='75%' align='right'>"
+            "<div style='background-color: #DCF8C6; padding: 14px 18px; border-radius: 24px 24px 8px 24px; "
+            "margin: 0 10px; display: inline-block; text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,0.1);'>"
+            "<div style='color: #075E54; font-weight: bold; font-size: 15px; margin-bottom: 4px;'>%1</div>"
+            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.3; margin-bottom: 4px; letter-spacing: normal; word-spacing: normal;'>%2</div>"
+            "<div style='color: #888; font-size: 12px; text-align: right;'>%3</div>"
+            "</div></td></tr></table>"
+        ).arg(sender, message.toHtmlEscaped(), time);
+    } else {
+        // Tin nhắn người khác - màu xám nhạt
+        html = QString(
+            "<table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom: 12px;'><tr>"
+            "<td width='75%' align='left'>"
+            "<div style='background-color: #E8E8E8; padding: 14px 18px; border-radius: 24px 24px 24px 8px; "
+            "margin: 0 10px; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.08);'>"
+            "<div style='color: #128C7E; font-weight: bold; font-size: 15px; margin-bottom: 4px;'>%1</div>"
+            "<div style='color: #1a1a1a; font-size: 16px; line-height: 1.3; margin-bottom: 4px; letter-spacing: normal; word-spacing: normal;'>%2</div>"
+            "<div style='color: #888; font-size: 12px;'>%3</div>"
+            "</div></td>"
+            "<td width='25%'></td></tr></table>"
+        ).arg(sender, message.toHtmlEscaped(), time);
+    }
+    
+    m_chatDisplay->append(html);
+}
+
+void ChatWidget::onMessagesReadNotification(const QString &readerUsername)
+{
+    // Someone read our messages - update the seen status
+    m_messageSeenStatus[readerUsername] = true;
+    
+    // If we're currently chatting with this user, show "Đã xem"
+    if (!m_isChatWithGroup && m_currentTarget == readerUsername) {
+        m_seenStatusLabel->setText("✓✓ Đã xem");
+        m_seenStatusLabel->setVisible(true);
     }
 }
