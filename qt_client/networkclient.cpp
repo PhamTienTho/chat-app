@@ -491,6 +491,10 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
             emit friendOffline(data.value("username"));
             break;
             
+        case S_NOTIFY_MESSAGES_READ:
+            emit messagesReadNotification(data.value("reader_username"));
+            break;
+            
         case S_NOTIFY_GROUP_JOIN:
             emit userJoinedGroup(data.value("group_id"), data.value("username"));
             break;
