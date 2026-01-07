@@ -59,6 +59,7 @@ private slots:
     void onJoinGroup();
     void onLeaveGroup();
     void onViewPendingRequests();
+    void onUnfriend();
     void onAttachFile();
     
 public slots:

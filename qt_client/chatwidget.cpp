@@ -223,40 +223,57 @@ void ChatWidget::setupUI()
     friendsLayout->setContentsMargins(8, 10, 8, 5);
     friendsLayout->setSpacing(10);
     
-    QHBoxLayout *friendsButtons = new QHBoxLayout;
-    friendsButtons->setSpacing(6);
+    // Row 1: Refresh and Add
+    QHBoxLayout *friendsButtonsRow1 = new QHBoxLayout;
+    friendsButtonsRow1->setSpacing(8);
     
-    QPushButton *refreshFriendsBtn = new QPushButton("Refresh");
+    QPushButton *refreshFriendsBtn = new QPushButton("🔄 Refresh");
     refreshFriendsBtn->setToolTip("Làm mới danh sách");
-    refreshFriendsBtn->setMinimumHeight(36);
+    refreshFriendsBtn->setMinimumHeight(40);
     refreshFriendsBtn->setStyleSheet(
-        "QPushButton { background-color: #2196F3; color: white; padding: 8px 12px; "
-        "border-radius: 6px; font-weight: bold; font-size: 12px; border: none; }"
+        "QPushButton { background-color: #2196F3; color: white; padding: 10px 15px; "
+        "border-radius: 8px; font-weight: bold; font-size: 13px; border: none; }"
         "QPushButton:hover { background-color: #1976D2; }"
         "QPushButton:pressed { background-color: #1565C0; }");
     
-    QPushButton *addFriendBtn = new QPushButton("+ Add");
+    QPushButton *addFriendBtn = new QPushButton("➕ Add");
     addFriendBtn->setToolTip("Thêm bạn");
-    addFriendBtn->setMinimumHeight(36);
+    addFriendBtn->setMinimumHeight(40);
     addFriendBtn->setStyleSheet(
-        "QPushButton { background-color: #4CAF50; color: white; padding: 8px 12px; "
-        "border-radius: 6px; font-weight: bold; font-size: 12px; border: none; }"
+        "QPushButton { background-color: #4CAF50; color: white; padding: 10px 15px; "
+        "border-radius: 8px; font-weight: bold; font-size: 13px; border: none; }"
         "QPushButton:hover { background-color: #43A047; }"
         "QPushButton:pressed { background-color: #388E3C; }");
     
-    QPushButton *pendingBtn = new QPushButton("Pending");
+    friendsButtonsRow1->addWidget(refreshFriendsBtn);
+    friendsButtonsRow1->addWidget(addFriendBtn);
+    friendsLayout->addLayout(friendsButtonsRow1);
+    
+    // Row 2: Pending and Unfriend
+    QHBoxLayout *friendsButtonsRow2 = new QHBoxLayout;
+    friendsButtonsRow2->setSpacing(8);
+    
+    QPushButton *pendingBtn = new QPushButton("⏳ Pending");
     pendingBtn->setToolTip("Lời mời chờ");
-    pendingBtn->setMinimumHeight(36);
+    pendingBtn->setMinimumHeight(40);
     pendingBtn->setStyleSheet(
-        "QPushButton { background-color: #FF9800; color: white; padding: 8px 12px; "
-        "border-radius: 6px; font-weight: bold; font-size: 12px; border: none; }"
+        "QPushButton { background-color: #FF9800; color: white; padding: 10px 15px; "
+        "border-radius: 8px; font-weight: bold; font-size: 13px; border: none; }"
         "QPushButton:hover { background-color: #F57C00; }"
         "QPushButton:pressed { background-color: #E65100; }");
     
-    friendsButtons->addWidget(refreshFriendsBtn);
-    friendsButtons->addWidget(addFriendBtn);
-    friendsButtons->addWidget(pendingBtn);
-    friendsLayout->addLayout(friendsButtons);
+    QPushButton *unfriendBtn = new QPushButton("❌ Remove");
+    unfriendBtn->setToolTip("Hủy kết bạn");
+    unfriendBtn->setMinimumHeight(40);
+    unfriendBtn->setStyleSheet(
+        "QPushButton { background-color: #f44336; color: white; padding: 10px 15px; "
+        "border-radius: 8px; font-weight: bold; font-size: 13px; border: none; }"
+        "QPushButton:hover { background-color: #d32f2f; }"
+        "QPushButton:pressed { background-color: #c62828; }");
+    
+    friendsButtonsRow2->addWidget(pendingBtn);
+    friendsButtonsRow2->addWidget(unfriendBtn);
+    friendsLayout->addLayout(friendsButtonsRow2);
     
     m_friendsList = new QListWidget;
     m_friendsList->setStyleSheet(
@@ -269,6 +286,7 @@ void ChatWidget::setupUI()
     connect(refreshFriendsBtn, &QPushButton::clicked, this, &ChatWidget::onRefreshFriends);
     connect(addFriendBtn, &QPushButton::clicked, this, &ChatWidget::onAddFriend);
     connect(pendingBtn, &QPushButton::clicked, this, &ChatWidget::onViewPendingRequests);
+    connect(unfriendBtn, &QPushButton::clicked, this, &ChatWidget::onUnfriend);
     connect(m_friendsList, &QListWidget::itemClicked, this, &ChatWidget::onFriendSelected);
     
     m_sidebarTabs->addTab(friendsTab, "Friends");
@@ -279,50 +297,57 @@ void ChatWidget::setupUI()
     groupsLayout->setContentsMargins(8, 10, 8, 5);
     groupsLayout->setSpacing(10);
     
-    QHBoxLayout *groupsButtons = new QHBoxLayout;
-    groupsButtons->setSpacing(6);
+    // Row 1: Refresh and Create
+    QHBoxLayout *groupsButtonsRow1 = new QHBoxLayout;
+    groupsButtonsRow1->setSpacing(8);
     
-    QPushButton *refreshGroupsBtn = new QPushButton("Refresh");
+    QPushButton *refreshGroupsBtn = new QPushButton("🔄 Refresh");
     refreshGroupsBtn->setToolTip("Làm mới");
-    refreshGroupsBtn->setMinimumHeight(36);
+    refreshGroupsBtn->setMinimumHeight(40);
     refreshGroupsBtn->setStyleSheet(
-        "QPushButton { background-color: #2196F3; color: white; padding: 8px 10px; "
-        "border-radius: 6px; font-weight: bold; font-size: 11px; border: none; }"
+        "QPushButton { background-color: #2196F3; color: white; padding: 10px 15px; "
+        "border-radius: 8px; font-weight: bold; font-size: 13px; border: none; }"
         "QPushButton:hover { background-color: #1976D2; }"
         "QPushButton:pressed { background-color: #1565C0; }");
     
-    QPushButton *createGroupBtn = new QPushButton("+ New");
+    QPushButton *createGroupBtn = new QPushButton("➕ Create");
     createGroupBtn->setToolTip("Tạo nhóm");
-    createGroupBtn->setMinimumHeight(36);
+    createGroupBtn->setMinimumHeight(40);
     createGroupBtn->setStyleSheet(
-        "QPushButton { background-color: #4CAF50; color: white; padding: 8px 10px; "
-        "border-radius: 6px; font-weight: bold; font-size: 11px; border: none; }"
+        "QPushButton { background-color: #4CAF50; color: white; padding: 10px 15px; "
+        "border-radius: 8px; font-weight: bold; font-size: 13px; border: none; }"
         "QPushButton:hover { background-color: #43A047; }"
         "QPushButton:pressed { background-color: #388E3C; }");
     
-    QPushButton *joinGroupBtn = new QPushButton("Join");
+    groupsButtonsRow1->addWidget(refreshGroupsBtn);
+    groupsButtonsRow1->addWidget(createGroupBtn);
+    groupsLayout->addLayout(groupsButtonsRow1);
+    
+    // Row 2: Join and Leave
+    QHBoxLayout *groupsButtonsRow2 = new QHBoxLayout;
+    groupsButtonsRow2->setSpacing(8);
+    
+    QPushButton *joinGroupBtn = new QPushButton("👥 Join");
     joinGroupBtn->setToolTip("Tham gia nhóm");
-    joinGroupBtn->setMinimumHeight(36);
+    joinGroupBtn->setMinimumHeight(40);
     joinGroupBtn->setStyleSheet(
-        "QPushButton { background-color: #9C27B0; color: white; padding: 8px 10px; "
-        "border-radius: 6px; font-weight: bold; font-size: 11px; border: none; }"
+        "QPushButton { background-color: #9C27B0; color: white; padding: 10px 15px; "
+        "border-radius: 8px; font-weight: bold; font-size: 13px; border: none; }"
         "QPushButton:hover { background-color: #7B1FA2; }"
         "QPushButton:pressed { background-color: #6A1B9A; }");
     
-    QPushButton *leaveGroupBtn = new QPushButton("Leave");
+    QPushButton *leaveGroupBtn = new QPushButton("🚪 Leave");
     leaveGroupBtn->setToolTip("Rời nhóm");
-    leaveGroupBtn->setMinimumHeight(36);
+    leaveGroupBtn->setMinimumHeight(40);
     leaveGroupBtn->setStyleSheet(
-        "QPushButton { background-color: #f44336; color: white; padding: 8px 10px; "
-        "border-radius: 6px; font-weight: bold; font-size: 11px; border: none; }"
+        "QPushButton { background-color: #f44336; color: white; padding: 10px 15px; "
+        "border-radius: 8px; font-weight: bold; font-size: 13px; border: none; }"
         "QPushButton:hover { background-color: #d32f2f; }"
         "QPushButton:pressed { background-color: #c62828; }");
     
-    groupsButtons->addWidget(refreshGroupsBtn);
-    groupsButtons->addWidget(createGroupBtn);
-    groupsButtons->addWidget(joinGroupBtn);
-    groupsButtons->addWidget(leaveGroupBtn);
-    groupsLayout->addLayout(groupsButtons);
+    groupsButtonsRow2->addWidget(joinGroupBtn);
+    groupsButtonsRow2->addWidget(leaveGroupBtn);
+    groupsLayout->addLayout(groupsButtonsRow2);
     
     m_groupsList = new QListWidget;
     m_groupsList->setStyleSheet(
@@ -991,6 +1016,39 @@ void ChatWidget::onLeaveGroup()
 void ChatWidget::onViewPendingRequests()
 {
     m_client->sendPendingRequests();
+}
+
+void ChatWidget::onUnfriend()
+{
+    QListWidgetItem *item = m_friendsList->currentItem();
+    if (!item) {
+        QMessageBox::warning(this, "Lỗi", "Vui lòng chọn bạn cần hủy kết bạn");
+        return;
+    }
+    
+    QString friendUsername = item->data(Qt::UserRole).toString();
+    
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "Xác nhận", 
+        "Bạn có chắc muốn hủy kết bạn với " + friendUsername + "?",
+        QMessageBox::Yes | QMessageBox::No);
+    
+    if (reply == QMessageBox::Yes) {
+        m_client->sendUnfriend(friendUsername);
+        QMessageBox::information(this, "Thành công", "Đã hủy kết bạn với " + friendUsername);
+        
+        // Refresh friend list
+        m_client->sendFriendList();
+        
+        // Clear chat if current chat is with this friend
+        if (m_currentTarget == friendUsername && !m_isChatWithGroup) {
+            m_chatListWidget->clear();
+            m_chatHeader->setText("Select a friend or group to chat");
+            m_currentTarget.clear();
+            m_messageInput->setEnabled(false);
+            m_sendButton->setEnabled(false);
+        }
+    }
 }
 
 void ChatWidget::onFriendListReceived(const QList<QPair<QString, bool>> &friends)
