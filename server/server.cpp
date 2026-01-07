@@ -144,6 +144,29 @@ void handle_login(int client_socket, const map<string, string>& body) {
     
     // Update in-memory cache
     pthread_mutex_lock(&clients_mutex);
+    
+    // Check if user already logged in somewhere else
+    if (username_to_socket.count(username)) {
+        int old_socket = username_to_socket[username];
+        if (old_socket != client_socket) {
+            cout << "⚠️  User " << username << " already logged in on another device. Forcing logout..." << endl;
+            
+            // Send force logout notification to old client
+            map<string, string> logout_msg;
+            logout_msg["reason"] = "Logged in from another device";
+            send_packet(old_socket, S_RESP_LOGIN, STATUS_UNAUTHORIZED, 
+                       JsonHelper::build(logout_msg));
+            
+            // Remove old session from maps
+            socket_to_userid.erase(old_socket);
+            socket_to_username.erase(old_socket);
+            socket_to_token.erase(old_socket);
+            
+            // Close old socket
+            close(old_socket);
+        }
+    }
+    
     socket_to_userid[client_socket] = user_id;
     socket_to_username[client_socket] = username;
     username_to_socket[username] = client_socket;
