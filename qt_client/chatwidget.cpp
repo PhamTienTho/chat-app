@@ -25,7 +25,7 @@
 // ===== MessageBubble Implementation =====
 MessageBubble::MessageBubble(const QString &sender, const QString &message, const QString &time, 
                              bool isMe, int messageId, QWidget *parent)
-    : QWidget(parent), m_isMe(isMe), m_messageId(messageId), m_seenLabel(nullptr)
+    : QWidget(parent), m_isMe(isMe), m_messageId(messageId), m_message(message), m_seenLabel(nullptr)
 {
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(10, 5, 10, 5);
@@ -488,6 +488,18 @@ void ChatWidget::setupUI()
     
     headerLayout->addStretch();
     
+    // Search button
+    m_searchBtn = new QToolButton;
+    m_searchBtn->setText("🔍");
+    m_searchBtn->setStyleSheet(
+        "QToolButton { background-color: transparent; color: #555; "
+        "font-size: 18px; padding: 5px 10px; "
+        "border: none; border-radius: 5px; }"
+        "QToolButton:hover { background-color: #ddd; }");
+    m_searchBtn->setVisible(false);  // Hidden until chat is selected
+    connect(m_searchBtn, &QToolButton::clicked, this, &ChatWidget::onSearchToggle);
+    headerLayout->addWidget(m_searchBtn);
+    
     // Group menu button (hidden by default) - 3 dots icon
     m_groupMenuBtn = new QToolButton;
     m_groupMenuBtn->setText("\u22EE");  // Vertical ellipsis (3 dots)
@@ -518,6 +530,10 @@ void ChatWidget::setupUI()
     connect(leaveGroupAction, &QAction::triggered, this, &ChatWidget::onLeaveCurrentGroup);
     
     chatLayout->addWidget(headerWidget);
+    
+    // Search bar (hidden by default)
+    setupSearchBar();
+    chatLayout->addWidget(m_searchBar);
     
     // Load more button (hidden by default)
     m_loadMoreBtn = new QPushButton("📜 Tải tin nhắn cũ hơn...");
@@ -733,6 +749,75 @@ void ChatWidget::setupEmojiPicker()
     m_emojiPicker->hide();
 }
 
+void ChatWidget::setupSearchBar()
+{
+    m_searchBar = new QFrame;
+    m_searchBar->setStyleSheet(
+        "QFrame { background-color: #fff8e1; border-bottom: 1px solid #ffc107; padding: 5px; }");
+    
+    QHBoxLayout *searchLayout = new QHBoxLayout(m_searchBar);
+    searchLayout->setContentsMargins(10, 5, 10, 5);
+    searchLayout->setSpacing(8);
+    
+    // Search icon
+    QLabel *searchIcon = new QLabel("🔍");
+    searchIcon->setStyleSheet("font-size: 14px;");
+    searchLayout->addWidget(searchIcon);
+    
+    // Search input
+    m_searchInput = new QLineEdit;
+    m_searchInput->setPlaceholderText("Tìm kiếm tin nhắn...");
+    m_searchInput->setStyleSheet(
+        "QLineEdit { border: 1px solid #ddd; border-radius: 15px; "
+        "padding: 6px 12px; font-size: 13px; background-color: white; }");
+    connect(m_searchInput, &QLineEdit::textChanged, this, &ChatWidget::onSearchTextChanged);
+    connect(m_searchInput, &QLineEdit::returnPressed, this, &ChatWidget::onSearchNext);
+    searchLayout->addWidget(m_searchInput, 1);
+    
+    // Results label
+    m_searchResultLabel = new QLabel("");
+    m_searchResultLabel->setStyleSheet("color: #666; font-size: 12px; min-width: 60px;");
+    searchLayout->addWidget(m_searchResultLabel);
+    
+    // Prev button
+    m_searchPrevBtn = new QPushButton("↑");
+    m_searchPrevBtn->setStyleSheet(
+        "QPushButton { background-color: #e0e0e0; border: none; border-radius: 12px; "
+        "padding: 4px 10px; font-size: 14px; font-weight: bold; }"
+        "QPushButton:hover { background-color: #bdbdbd; }"
+        "QPushButton:disabled { color: #aaa; }");
+    m_searchPrevBtn->setFixedSize(28, 28);
+    m_searchPrevBtn->setEnabled(false);
+    connect(m_searchPrevBtn, &QPushButton::clicked, this, &ChatWidget::onSearchPrev);
+    searchLayout->addWidget(m_searchPrevBtn);
+    
+    // Next button
+    m_searchNextBtn = new QPushButton("↓");
+    m_searchNextBtn->setStyleSheet(
+        "QPushButton { background-color: #e0e0e0; border: none; border-radius: 12px; "
+        "padding: 4px 10px; font-size: 14px; font-weight: bold; }"
+        "QPushButton:hover { background-color: #bdbdbd; }"
+        "QPushButton:disabled { color: #aaa; }");
+    m_searchNextBtn->setFixedSize(28, 28);
+    m_searchNextBtn->setEnabled(false);
+    connect(m_searchNextBtn, &QPushButton::clicked, this, &ChatWidget::onSearchNext);
+    searchLayout->addWidget(m_searchNextBtn);
+    
+    // Close button
+    m_searchCloseBtn = new QPushButton("✕");
+    m_searchCloseBtn->setStyleSheet(
+        "QPushButton { background-color: transparent; border: none; "
+        "color: #666; font-size: 16px; font-weight: bold; padding: 4px 8px; }"
+        "QPushButton:hover { color: #333; background-color: #ffecb3; border-radius: 4px; }");
+    m_searchCloseBtn->setFixedSize(28, 28);
+    connect(m_searchCloseBtn, &QPushButton::clicked, this, &ChatWidget::onSearchClose);
+    searchLayout->addWidget(m_searchCloseBtn);
+    
+    m_searchBar->hide();
+    m_searchResults.clear();
+    m_currentSearchIndex = -1;
+}
+
 void ChatWidget::toggleEmojiPicker()
 {
     if (m_emojiPicker->isVisible()) {
@@ -763,6 +848,8 @@ void ChatWidget::onFriendSelected(QListWidgetItem *item)
     m_currentTarget = username;
     m_isChatWithGroup = false;
     m_groupMenuBtn->setVisible(false);  // Hide menu for 1-1 chat
+    m_searchBtn->setVisible(true);  // Show search button
+    onSearchClose();  // Close search bar when switching chats
     
     QString status = isOnline ? " (Online)" : " (Offline)";
     m_chatHeader->setText("Chat with: " + username + status);
@@ -803,6 +890,8 @@ void ChatWidget::onGroupSelected(QListWidgetItem *item)
         m_currentGroupName = parts[1];
         m_isChatWithGroup = true;
         m_groupMenuBtn->setVisible(true);  // Show menu for group chat
+        m_searchBtn->setVisible(true);  // Show search button
+        onSearchClose();  // Close search bar when switching chats
         
         m_chatHeader->setText("Group: " + m_currentGroupName);
         m_messageInput->setEnabled(true);
@@ -1853,5 +1942,112 @@ void ChatWidget::onGroupInviteResponse(bool success, const QString &message)
         }
     } else {
         QMessageBox::warning(this, "Lỗi", message);
+    }
+}
+
+// ===== Search Functions =====
+
+void ChatWidget::onSearchToggle()
+{
+    if (m_searchBar->isVisible()) {
+        onSearchClose();
+    } else {
+        m_searchBar->show();
+        m_searchInput->setFocus();
+        m_searchInput->selectAll();
+    }
+}
+
+void ChatWidget::onSearchTextChanged(const QString &text)
+{
+    // Clear previous results
+    m_searchResults.clear();
+    m_currentSearchIndex = -1;
+    
+    // Reset all item backgrounds
+    for (int i = 0; i < m_chatListWidget->count(); i++) {
+        QListWidgetItem *item = m_chatListWidget->item(i);
+        item->setBackground(Qt::transparent);
+    }
+    
+    if (text.isEmpty() || text.length() < 2) {
+        m_searchResultLabel->setText("");
+        m_searchPrevBtn->setEnabled(false);
+        m_searchNextBtn->setEnabled(false);
+        return;
+    }
+    
+    // Search locally in displayed messages
+    QString keyword = text.toLower();
+    for (int i = 0; i < m_chatListWidget->count(); i++) {
+        QListWidgetItem *item = m_chatListWidget->item(i);
+        MessageBubble *bubble = qobject_cast<MessageBubble*>(m_chatListWidget->itemWidget(item));
+        if (bubble && bubble->getMessage().toLower().contains(keyword)) {
+            m_searchResults.append(i);
+        }
+    }
+    
+    int count = m_searchResults.size();
+    if (count > 0) {
+        m_currentSearchIndex = 0;
+        m_searchResultLabel->setText(QString("1/%1").arg(count));
+        m_searchPrevBtn->setEnabled(count > 1);
+        m_searchNextBtn->setEnabled(count > 1);
+        highlightSearchResult();
+    } else {
+        m_searchResultLabel->setText("0 kết quả");
+        m_searchPrevBtn->setEnabled(false);
+        m_searchNextBtn->setEnabled(false);
+    }
+}
+
+void ChatWidget::onSearchNext()
+{
+    if (m_searchResults.isEmpty()) return;
+    
+    m_currentSearchIndex = (m_currentSearchIndex + 1) % m_searchResults.size();
+    m_searchResultLabel->setText(QString("%1/%2").arg(m_currentSearchIndex + 1).arg(m_searchResults.size()));
+    highlightSearchResult();
+}
+
+void ChatWidget::onSearchPrev()
+{
+    if (m_searchResults.isEmpty()) return;
+    
+    m_currentSearchIndex = (m_currentSearchIndex - 1 + m_searchResults.size()) % m_searchResults.size();
+    m_searchResultLabel->setText(QString("%1/%2").arg(m_currentSearchIndex + 1).arg(m_searchResults.size()));
+    highlightSearchResult();
+}
+
+void ChatWidget::onSearchClose()
+{
+    m_searchBar->hide();
+    m_searchInput->clear();
+    m_searchResults.clear();
+    m_currentSearchIndex = -1;
+    
+    // Reset all item backgrounds
+    for (int i = 0; i < m_chatListWidget->count(); i++) {
+        QListWidgetItem *item = m_chatListWidget->item(i);
+        item->setBackground(Qt::transparent);
+    }
+}
+
+void ChatWidget::highlightSearchResult()
+{
+    if (m_currentSearchIndex < 0 || m_currentSearchIndex >= m_searchResults.size()) return;
+    
+    // Reset all backgrounds first
+    for (int i = 0; i < m_chatListWidget->count(); i++) {
+        QListWidgetItem *item = m_chatListWidget->item(i);
+        item->setBackground(Qt::transparent);
+    }
+    
+    // Highlight the found item
+    int idx = m_searchResults[m_currentSearchIndex];
+    QListWidgetItem *item = m_chatListWidget->item(idx);
+    if (item) {
+        item->setBackground(QColor("#fff59d"));  // Yellow highlight
+        m_chatListWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
     }
 }

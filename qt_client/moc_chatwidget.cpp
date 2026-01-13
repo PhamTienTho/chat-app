@@ -133,8 +133,8 @@ void MessageBubble::deleteRequested(int _t1)
     QMetaObject::activate(this, &staticMetaObject, 0, _a);
 }
 struct qt_meta_stringdata_ChatWidget_t {
-    QByteArrayData data[69];
-    char stringdata0[1083];
+    QByteArrayData data[75];
+    char stringdata0[1163];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -211,7 +211,13 @@ QT_MOC_LITERAL(64, 993, 23), // "onDeleteMessageResponse"
 QT_MOC_LITERAL(65, 1017, 16), // "onMessageDeleted"
 QT_MOC_LITERAL(66, 1034, 8), // "chatType"
 QT_MOC_LITERAL(67, 1043, 20), // "onPrivateMessageSent"
-QT_MOC_LITERAL(68, 1064, 18) // "onGroupMessageSent"
+QT_MOC_LITERAL(68, 1064, 18), // "onGroupMessageSent"
+QT_MOC_LITERAL(69, 1083, 14), // "onSearchToggle"
+QT_MOC_LITERAL(70, 1098, 19), // "onSearchTextChanged"
+QT_MOC_LITERAL(71, 1118, 4), // "text"
+QT_MOC_LITERAL(72, 1123, 12), // "onSearchNext"
+QT_MOC_LITERAL(73, 1136, 12), // "onSearchPrev"
+QT_MOC_LITERAL(74, 1149, 13) // "onSearchClose"
 
     },
     "ChatWidget\0logoutRequested\0\0onSendClicked\0"
@@ -243,7 +249,9 @@ QT_MOC_LITERAL(68, 1064, 18) // "onGroupMessageSent"
     "fileSize\0onDeleteMessageRequested\0"
     "onDeleteMessageResponse\0onMessageDeleted\0"
     "chatType\0onPrivateMessageSent\0"
-    "onGroupMessageSent"
+    "onGroupMessageSent\0onSearchToggle\0"
+    "onSearchTextChanged\0text\0onSearchNext\0"
+    "onSearchPrev\0onSearchClose"
 };
 #undef QT_MOC_LITERAL
 
@@ -253,7 +261,7 @@ static const uint qt_meta_data_ChatWidget[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      42,   14, // methods
+      47,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -261,50 +269,55 @@ static const uint qt_meta_data_ChatWidget[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  224,    2, 0x06 /* Public */,
+       1,    0,  249,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,  225,    2, 0x08 /* Private */,
-       4,    0,  226,    2, 0x08 /* Private */,
-       5,    0,  227,    2, 0x08 /* Private */,
-       6,    2,  228,    2, 0x08 /* Private */,
-       9,    1,  233,    2, 0x08 /* Private */,
-      12,    1,  236,    2, 0x08 /* Private */,
-      13,    0,  239,    2, 0x08 /* Private */,
-      14,    0,  240,    2, 0x08 /* Private */,
-      15,    0,  241,    2, 0x08 /* Private */,
-      16,    0,  242,    2, 0x08 /* Private */,
-      17,    0,  243,    2, 0x08 /* Private */,
-      18,    0,  244,    2, 0x08 /* Private */,
-      19,    0,  245,    2, 0x08 /* Private */,
-      20,    0,  246,    2, 0x08 /* Private */,
-      21,    0,  247,    2, 0x08 /* Private */,
-      22,    1,  248,    2, 0x0a /* Public */,
-      24,    0,  251,    2, 0x08 /* Private */,
-      25,    0,  252,    2, 0x08 /* Private */,
-      26,    0,  253,    2, 0x08 /* Private */,
-      27,    2,  254,    2, 0x08 /* Private */,
-      28,    3,  259,    2, 0x08 /* Private */,
-      33,    1,  266,    2, 0x08 /* Private */,
-      35,    1,  269,    2, 0x08 /* Private */,
-      37,    1,  272,    2, 0x08 /* Private */,
-      39,    1,  275,    2, 0x08 /* Private */,
-      41,    3,  278,    2, 0x08 /* Private */,
-      44,    5,  285,    2, 0x08 /* Private */,
-      45,    1,  296,    2, 0x08 /* Private */,
-      46,    1,  299,    2, 0x08 /* Private */,
-      48,    1,  302,    2, 0x08 /* Private */,
-      49,    1,  305,    2, 0x08 /* Private */,
-      50,    0,  308,    2, 0x08 /* Private */,
-      51,    4,  309,    2, 0x08 /* Private */,
-      57,    5,  318,    2, 0x08 /* Private */,
-      58,    1,  329,    2, 0x08 /* Private */,
-      60,    3,  332,    2, 0x08 /* Private */,
-      63,    1,  339,    2, 0x08 /* Private */,
-      64,    3,  342,    2, 0x08 /* Private */,
-      65,    3,  349,    2, 0x08 /* Private */,
-      67,    2,  356,    2, 0x08 /* Private */,
-      68,    2,  361,    2, 0x08 /* Private */,
+       3,    0,  250,    2, 0x08 /* Private */,
+       4,    0,  251,    2, 0x08 /* Private */,
+       5,    0,  252,    2, 0x08 /* Private */,
+       6,    2,  253,    2, 0x08 /* Private */,
+       9,    1,  258,    2, 0x08 /* Private */,
+      12,    1,  261,    2, 0x08 /* Private */,
+      13,    0,  264,    2, 0x08 /* Private */,
+      14,    0,  265,    2, 0x08 /* Private */,
+      15,    0,  266,    2, 0x08 /* Private */,
+      16,    0,  267,    2, 0x08 /* Private */,
+      17,    0,  268,    2, 0x08 /* Private */,
+      18,    0,  269,    2, 0x08 /* Private */,
+      19,    0,  270,    2, 0x08 /* Private */,
+      20,    0,  271,    2, 0x08 /* Private */,
+      21,    0,  272,    2, 0x08 /* Private */,
+      22,    1,  273,    2, 0x0a /* Public */,
+      24,    0,  276,    2, 0x08 /* Private */,
+      25,    0,  277,    2, 0x08 /* Private */,
+      26,    0,  278,    2, 0x08 /* Private */,
+      27,    2,  279,    2, 0x08 /* Private */,
+      28,    3,  284,    2, 0x08 /* Private */,
+      33,    1,  291,    2, 0x08 /* Private */,
+      35,    1,  294,    2, 0x08 /* Private */,
+      37,    1,  297,    2, 0x08 /* Private */,
+      39,    1,  300,    2, 0x08 /* Private */,
+      41,    3,  303,    2, 0x08 /* Private */,
+      44,    5,  310,    2, 0x08 /* Private */,
+      45,    1,  321,    2, 0x08 /* Private */,
+      46,    1,  324,    2, 0x08 /* Private */,
+      48,    1,  327,    2, 0x08 /* Private */,
+      49,    1,  330,    2, 0x08 /* Private */,
+      50,    0,  333,    2, 0x08 /* Private */,
+      51,    4,  334,    2, 0x08 /* Private */,
+      57,    5,  343,    2, 0x08 /* Private */,
+      58,    1,  354,    2, 0x08 /* Private */,
+      60,    3,  357,    2, 0x08 /* Private */,
+      63,    1,  364,    2, 0x08 /* Private */,
+      64,    3,  367,    2, 0x08 /* Private */,
+      65,    3,  374,    2, 0x08 /* Private */,
+      67,    2,  381,    2, 0x08 /* Private */,
+      68,    2,  386,    2, 0x08 /* Private */,
+      69,    0,  391,    2, 0x08 /* Private */,
+      70,    1,  392,    2, 0x08 /* Private */,
+      72,    0,  395,    2, 0x08 /* Private */,
+      73,    0,  396,    2, 0x08 /* Private */,
+      74,    0,  397,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -351,6 +364,11 @@ static const uint qt_meta_data_ChatWidget[] = {
     QMetaType::Void, QMetaType::Int, QMetaType::QString, QMetaType::QString,   43,   66,   29,
     QMetaType::Void, QMetaType::Int, QMetaType::QString,   43,   52,
     QMetaType::Void, QMetaType::Int, QMetaType::QString,   43,   29,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::QString,   71,
+    QMetaType::Void,
+    QMetaType::Void,
+    QMetaType::Void,
 
        0        // eod
 };
@@ -403,6 +421,11 @@ void ChatWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 39: _t->onMessageDeleted((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QString(*)>(_a[3]))); break;
         case 40: _t->onPrivateMessageSent((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
         case 41: _t->onGroupMessageSent((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
+        case 42: _t->onSearchToggle(); break;
+        case 43: _t->onSearchTextChanged((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 44: _t->onSearchNext(); break;
+        case 45: _t->onSearchPrev(); break;
+        case 46: _t->onSearchClose(); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -446,13 +469,13 @@ int ChatWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 42)
+        if (_id < 47)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 42;
+        _id -= 47;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 42)
+        if (_id < 47)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 42;
+        _id -= 47;
     }
     return _id;
 }

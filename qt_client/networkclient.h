@@ -48,6 +48,7 @@ public:
     void sendFileDownload(const QString &fileName);
     void sendDeleteMessage(int messageId, const QString &chatType);  // "private" hoặc "group"
     void sendGroupInvite(const QString &groupId, const QString &username);  // Mời bạn bè vào nhóm
+    void sendSearchMessages(const QString &keyword, const QString &chatType, const QString &target);  // Tìm kiếm tin nhắn
     
     void setToken(const QString &token) { m_token = token; }
     QString getToken() const { return m_token; }
@@ -101,6 +102,9 @@ signals:
     // Delete message
     void deleteMessageResponse(bool success, const QString &message, int messageId);
     void messageDeleted(int messageId, const QString &chatType, const QString &groupId);
+    
+    // Search messages
+    void searchResultsReceived(const QList<QMap<QString, QString>> &results);
 
 private slots:
     void onReadyRead();

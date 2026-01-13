@@ -1275,6 +1275,64 @@ void handle_delete_message(int client_socket, const map<string, string>& body) {
     }
 }
 
+// ===== SEARCH MESSAGES =====
+void handle_search_messages(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string keyword = body.count("keyword") ? body.at("keyword") : "";
+    string chat_type = body.count("chat_type") ? body.at("chat_type") : "";  // "private" hoặc "group"
+    string target = body.count("target") ? body.at("target") : "";  // username hoặc group_id
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Invalid token";
+        send_packet(client_socket, S_RESP_SEARCH_MESSAGES, STATUS_UNAUTHORIZED, JsonHelper::build(resp));
+        return;
+    }
+    pthread_mutex_unlock(&db_mutex);
+    
+    if (keyword.empty() || chat_type.empty() || target.empty()) {
+        map<string, string> resp;
+        resp["message"] = "Missing keyword, chat_type or target";
+        send_packet(client_socket, S_RESP_SEARCH_MESSAGES, STATUS_BAD_REQUEST, JsonHelper::build(resp));
+        return;
+    }
+    
+    vector<map<string, string>> results;
+    
+    pthread_mutex_lock(&db_mutex);
+    if (chat_type == "private") {
+        int target_user_id = db->getUserId(target);
+        if (target_user_id != -1) {
+            results = db->searchPrivateMessages(user_id, target_user_id, keyword, 100);
+        }
+    } else if (chat_type == "group") {
+        int group_id = stoi(target);
+        if (db->isGroupMember(group_id, user_id)) {
+            results = db->searchGroupMessages(group_id, keyword, 100);
+        }
+    }
+    pthread_mutex_unlock(&db_mutex);
+    
+    // Build response JSON với array messages
+    string json = "{\"count\":" + to_string(results.size()) + ",\"messages\":[";
+    for (size_t i = 0; i < results.size(); i++) {
+        if (i > 0) json += ",";
+        json += "{";
+        json += "\"message_id\":\"" + results[i]["message_id"] + "\",";
+        json += "\"from_username\":\"" + results[i]["from_username"] + "\",";
+        json += "\"message\":\"" + JsonHelper::escapeJson(results[i]["message"]) + "\",";
+        json += "\"sent_at\":\"" + results[i]["sent_at"] + "\"";
+        json += "}";
+    }
+    json += "]}";
+    
+    send_packet(client_socket, S_RESP_SEARCH_MESSAGES, STATUS_OK, json);
+    cout << "✓ Search for '" << keyword << "' returned " << results.size() << " results" << endl;
+}
+
 void handle_file_upload(int client_socket, const map<string, string>& body) {
     string token = body.count("token") ? body.at("token") : "";
     string fileName = body.count("file_name") ? body.at("file_name") : "";
@@ -1565,6 +1623,9 @@ void* handle_client(void* arg) {
                 break;
             case C_REQ_DELETE_MESSAGE:
                 handle_delete_message(client_socket, body);
+                break;
+            case C_REQ_SEARCH_MESSAGES:
+                handle_search_messages(client_socket, body);
                 break;
             case C_REQ_FILE_UPLOAD:
                 handle_file_upload(client_socket, body);

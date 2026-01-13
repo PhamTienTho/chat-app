@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_NetworkClient_t {
-    QByteArrayData data[65];
-    char stringdata0[959];
+    QByteArrayData data[67];
+    char stringdata0[989];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -93,11 +93,13 @@ QT_MOC_LITERAL(56, 828, 8), // "fileSize"
 QT_MOC_LITERAL(57, 837, 21), // "deleteMessageResponse"
 QT_MOC_LITERAL(58, 859, 14), // "messageDeleted"
 QT_MOC_LITERAL(59, 874, 8), // "chatType"
-QT_MOC_LITERAL(60, 883, 11), // "onReadyRead"
-QT_MOC_LITERAL(61, 895, 11), // "onConnected"
-QT_MOC_LITERAL(62, 907, 14), // "onDisconnected"
-QT_MOC_LITERAL(63, 922, 7), // "onError"
-QT_MOC_LITERAL(64, 930, 28) // "QAbstractSocket::SocketError"
+QT_MOC_LITERAL(60, 883, 21), // "searchResultsReceived"
+QT_MOC_LITERAL(61, 905, 7), // "results"
+QT_MOC_LITERAL(62, 913, 11), // "onReadyRead"
+QT_MOC_LITERAL(63, 925, 11), // "onConnected"
+QT_MOC_LITERAL(64, 937, 14), // "onDisconnected"
+QT_MOC_LITERAL(65, 952, 7), // "onError"
+QT_MOC_LITERAL(66, 960, 28) // "QAbstractSocket::SocketError"
 
     },
     "NetworkClient\0connected\0\0disconnected\0"
@@ -123,8 +125,9 @@ QT_MOC_LITERAL(64, 930, 28) // "QAbstractSocket::SocketError"
     "messagesReadNotification\0readerUsername\0"
     "fileDownloadReceived\0fileName\0fileData\0"
     "fileSize\0deleteMessageResponse\0"
-    "messageDeleted\0chatType\0onReadyRead\0"
-    "onConnected\0onDisconnected\0onError\0"
+    "messageDeleted\0chatType\0searchResultsReceived\0"
+    "results\0onReadyRead\0onConnected\0"
+    "onDisconnected\0onError\0"
     "QAbstractSocket::SocketError"
 };
 #undef QT_MOC_LITERAL
@@ -135,51 +138,52 @@ static const uint qt_meta_data_NetworkClient[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      35,   14, // methods
+      36,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-      31,       // signalCount
+      32,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  189,    2, 0x06 /* Public */,
-       3,    0,  190,    2, 0x06 /* Public */,
-       4,    1,  191,    2, 0x06 /* Public */,
-       6,    3,  194,    2, 0x06 /* Public */,
-      10,    2,  201,    2, 0x06 /* Public */,
-      11,    2,  206,    2, 0x06 /* Public */,
-      12,    3,  211,    2, 0x06 /* Public */,
-      14,    1,  218,    2, 0x06 /* Public */,
-      16,    1,  221,    2, 0x06 /* Public */,
-      18,    1,  224,    2, 0x06 /* Public */,
-      20,    3,  227,    2, 0x06 /* Public */,
-      24,    1,  234,    2, 0x06 /* Public */,
-      26,    1,  237,    2, 0x06 /* Public */,
-      28,    1,  240,    2, 0x06 /* Public */,
-      30,    3,  243,    2, 0x06 /* Public */,
-      33,    2,  250,    2, 0x06 /* Public */,
-      35,    5,  255,    2, 0x06 /* Public */,
-      36,    2,  266,    2, 0x06 /* Public */,
-      37,    1,  271,    2, 0x06 /* Public */,
-      38,    1,  274,    2, 0x06 /* Public */,
-      40,    1,  277,    2, 0x06 /* Public */,
-      41,    1,  280,    2, 0x06 /* Public */,
-      42,    2,  283,    2, 0x06 /* Public */,
-      43,    2,  288,    2, 0x06 /* Public */,
-      44,    2,  293,    2, 0x06 /* Public */,
-      45,    4,  298,    2, 0x06 /* Public */,
-      50,    5,  307,    2, 0x06 /* Public */,
-      51,    1,  318,    2, 0x06 /* Public */,
-      53,    3,  321,    2, 0x06 /* Public */,
-      57,    3,  328,    2, 0x06 /* Public */,
-      58,    3,  335,    2, 0x06 /* Public */,
+       1,    0,  194,    2, 0x06 /* Public */,
+       3,    0,  195,    2, 0x06 /* Public */,
+       4,    1,  196,    2, 0x06 /* Public */,
+       6,    3,  199,    2, 0x06 /* Public */,
+      10,    2,  206,    2, 0x06 /* Public */,
+      11,    2,  211,    2, 0x06 /* Public */,
+      12,    3,  216,    2, 0x06 /* Public */,
+      14,    1,  223,    2, 0x06 /* Public */,
+      16,    1,  226,    2, 0x06 /* Public */,
+      18,    1,  229,    2, 0x06 /* Public */,
+      20,    3,  232,    2, 0x06 /* Public */,
+      24,    1,  239,    2, 0x06 /* Public */,
+      26,    1,  242,    2, 0x06 /* Public */,
+      28,    1,  245,    2, 0x06 /* Public */,
+      30,    3,  248,    2, 0x06 /* Public */,
+      33,    2,  255,    2, 0x06 /* Public */,
+      35,    5,  260,    2, 0x06 /* Public */,
+      36,    2,  271,    2, 0x06 /* Public */,
+      37,    1,  276,    2, 0x06 /* Public */,
+      38,    1,  279,    2, 0x06 /* Public */,
+      40,    1,  282,    2, 0x06 /* Public */,
+      41,    1,  285,    2, 0x06 /* Public */,
+      42,    2,  288,    2, 0x06 /* Public */,
+      43,    2,  293,    2, 0x06 /* Public */,
+      44,    2,  298,    2, 0x06 /* Public */,
+      45,    4,  303,    2, 0x06 /* Public */,
+      50,    5,  312,    2, 0x06 /* Public */,
+      51,    1,  323,    2, 0x06 /* Public */,
+      53,    3,  326,    2, 0x06 /* Public */,
+      57,    3,  333,    2, 0x06 /* Public */,
+      58,    3,  340,    2, 0x06 /* Public */,
+      60,    1,  347,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-      60,    0,  342,    2, 0x08 /* Private */,
-      61,    0,  343,    2, 0x08 /* Private */,
-      62,    0,  344,    2, 0x08 /* Private */,
-      63,    1,  345,    2, 0x08 /* Private */,
+      62,    0,  350,    2, 0x08 /* Private */,
+      63,    0,  351,    2, 0x08 /* Private */,
+      64,    0,  352,    2, 0x08 /* Private */,
+      65,    1,  353,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -213,12 +217,13 @@ static const uint qt_meta_data_NetworkClient[] = {
     QMetaType::Void, QMetaType::QString, QMetaType::QByteArray, QMetaType::LongLong,   54,   55,   56,
     QMetaType::Void, QMetaType::Bool, QMetaType::QString, QMetaType::Int,    7,    8,   32,
     QMetaType::Void, QMetaType::Int, QMetaType::QString, QMetaType::QString,   32,   59,   13,
+    QMetaType::Void, 0x80000000 | 48,   61,
 
  // slots: parameters
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, 0x80000000 | 64,    5,
+    QMetaType::Void, 0x80000000 | 66,    5,
 
        0        // eod
 };
@@ -260,16 +265,17 @@ void NetworkClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
         case 28: _t->fileDownloadReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QByteArray(*)>(_a[2])),(*reinterpret_cast< qint64(*)>(_a[3]))); break;
         case 29: _t->deleteMessageResponse((*reinterpret_cast< bool(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3]))); break;
         case 30: _t->messageDeleted((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QString(*)>(_a[3]))); break;
-        case 31: _t->onReadyRead(); break;
-        case 32: _t->onConnected(); break;
-        case 33: _t->onDisconnected(); break;
-        case 34: _t->onError((*reinterpret_cast< QAbstractSocket::SocketError(*)>(_a[1]))); break;
+        case 31: _t->searchResultsReceived((*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[1]))); break;
+        case 32: _t->onReadyRead(); break;
+        case 33: _t->onConnected(); break;
+        case 34: _t->onDisconnected(); break;
+        case 35: _t->onError((*reinterpret_cast< QAbstractSocket::SocketError(*)>(_a[1]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         switch (_id) {
         default: *reinterpret_cast<int*>(_a[0]) = -1; break;
-        case 34:
+        case 35:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<int*>(_a[0]) = -1; break;
             case 0:
@@ -496,6 +502,13 @@ void NetworkClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
                 return;
             }
         }
+        {
+            using _t = void (NetworkClient::*)(const QList<QMap<QString,QString>> & );
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::searchResultsReceived)) {
+                *result = 31;
+                return;
+            }
+        }
     }
 }
 
@@ -528,13 +541,13 @@ int NetworkClient::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 35)
+        if (_id < 36)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 35;
+        _id -= 36;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 35)
+        if (_id < 36)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 35;
+        _id -= 36;
     }
     return _id;
 }
@@ -752,6 +765,13 @@ void NetworkClient::messageDeleted(int _t1, const QString & _t2, const QString &
 {
     void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))) };
     QMetaObject::activate(this, &staticMetaObject, 30, _a);
+}
+
+// SIGNAL 31
+void NetworkClient::searchResultsReceived(const QList<QMap<QString,QString>> & _t1)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))) };
+    QMetaObject::activate(this, &staticMetaObject, 31, _a);
 }
 QT_WARNING_POP
 QT_END_MOC_NAMESPACE

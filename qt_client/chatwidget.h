@@ -31,6 +31,7 @@ public:
     int getMessageId() const { return m_messageId; }
     void setMessageId(int id) { m_messageId = id; }
     bool isMine() const { return m_isMe; }
+    QString getMessage() const { return m_message; }
     
 signals:
     void deleteRequested(int messageId);
@@ -41,6 +42,7 @@ protected:
 private:
     bool m_isMe;
     int m_messageId;
+    QString m_message;
     QLabel *m_seenLabel;
 };
 
@@ -116,10 +118,18 @@ private slots:
     // Message sent confirmation slots
     void onPrivateMessageSent(int messageId, const QString &targetUsername);
     void onGroupMessageSent(int messageId, const QString &groupId);
+    
+    // Search slots
+    void onSearchToggle();
+    void onSearchTextChanged(const QString &text);
+    void onSearchNext();
+    void onSearchPrev();
+    void onSearchClose();
 
 private:
     void setupUI();
     void setupEmojiPicker();
+    void setupSearchBar();
     void appendMessage(const QString &sender, const QString &message, bool isMe = false, int messageId = -1);
     void prependMessage(const QString &sender, const QString &message, const QString &time, bool isMe = false);
     void showNotification(const QString &title, const QString &message);
@@ -128,6 +138,7 @@ private:
     void loadChatHistory();
     QString formatFileSize(qint64 bytes);
     void removeMessageBubbleById(int messageId);
+    void highlightSearchResult();
     
     NetworkClient *m_client;
     QString m_username;
@@ -175,6 +186,17 @@ private:
     
     // Flag to show group members dialog
     bool m_showGroupMembersDialog;
+    
+    // Search components
+    QToolButton *m_searchBtn;
+    QFrame *m_searchBar;
+    QLineEdit *m_searchInput;
+    QLabel *m_searchResultLabel;
+    QPushButton *m_searchPrevBtn;
+    QPushButton *m_searchNextBtn;
+    QPushButton *m_searchCloseBtn;
+    QList<int> m_searchResults;  // Indices of matching messages in chat list
+    int m_currentSearchIndex;
 };
 
 #endif // CHATWIDGET_H

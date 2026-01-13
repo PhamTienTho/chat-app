@@ -836,3 +836,66 @@ int DBManager::getGroupIdFromMessage(int message_id) {
     mysql_free_result(result);
     return group_id;
 }
+
+vector<map<string, string>> DBManager::searchPrivateMessages(int user_id1, int user_id2, const string& keyword, int limit) {
+    vector<map<string, string>> messages;
+    string escaped_keyword = escapeString(keyword);
+    
+    string query = "SELECT pm.message_id, pm.from_user_id, u.username, pm.message_text, pm.sent_at "
+                   "FROM private_messages pm "
+                   "JOIN users u ON pm.from_user_id = u.user_id "
+                   "WHERE ((pm.from_user_id=" + to_string(user_id1) + " AND pm.to_user_id=" + to_string(user_id2) + ") "
+                   "OR (pm.from_user_id=" + to_string(user_id2) + " AND pm.to_user_id=" + to_string(user_id1) + ")) "
+                   "AND pm.message_text LIKE '%" + escaped_keyword + "%' "
+                   "ORDER BY pm.sent_at DESC LIMIT " + to_string(limit);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return messages;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(result))) {
+        map<string, string> msg;
+        msg["message_id"] = row[0] ? row[0] : "";
+        msg["from_user_id"] = row[1] ? row[1] : "";
+        msg["from_username"] = row[2] ? row[2] : "";
+        msg["message"] = row[3] ? row[3] : "";
+        msg["sent_at"] = row[4] ? row[4] : "";
+        messages.push_back(msg);
+    }
+    mysql_free_result(result);
+    return messages;
+}
+
+vector<map<string, string>> DBManager::searchGroupMessages(int group_id, const string& keyword, int limit) {
+    vector<map<string, string>> messages;
+    string escaped_keyword = escapeString(keyword);
+    
+    string query = "SELECT gm.message_id, gm.from_user_id, u.username, gm.message_text, gm.sent_at "
+                   "FROM group_messages gm "
+                   "JOIN users u ON gm.from_user_id = u.user_id "
+                   "WHERE gm.group_id=" + to_string(group_id) + " "
+                   "AND gm.message_text LIKE '%" + escaped_keyword + "%' "
+                   "ORDER BY gm.sent_at DESC LIMIT " + to_string(limit);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return messages;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(result))) {
+        map<string, string> msg;
+        msg["message_id"] = row[0] ? row[0] : "";
+        msg["from_user_id"] = row[1] ? row[1] : "";
+        msg["from_username"] = row[2] ? row[2] : "";
+        msg["message"] = row[3] ? row[3] : "";
+        msg["sent_at"] = row[4] ? row[4] : "";
+        messages.push_back(msg);
+    }
+    mysql_free_result(result);
+    return messages;
+}

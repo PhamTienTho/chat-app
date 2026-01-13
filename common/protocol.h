@@ -81,6 +81,10 @@
 #define S_RESP_DELETE_MESSAGE       802   // Server phản hồi xóa tin nhắn
 #define S_NOTIFY_MESSAGE_DELETED    803   // Server báo người nhận tin nhắn đã bị xóa
 
+// ===== NHÓM TÌM KIẾM TIN NHẮN (9xx) =====
+#define C_REQ_SEARCH_MESSAGES       901   // Client yêu cầu tìm kiếm tin nhắn
+#define S_RESP_SEARCH_MESSAGES      902   // Server trả về kết quả tìm kiếm
+
 // ===== NHÓM CHIA SẺ FILE (6xx) =====
 #define C_REQ_FILE_UPLOAD   601   // Client "xin phép" được tải file lên
 #define S_RESP_FILE_OK      602   // Server đồng ý, trả về file_id để Client bắt đầu gửi

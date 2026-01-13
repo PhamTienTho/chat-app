@@ -216,6 +216,68 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
             emit messageDeleted(messageId, chatType, groupId);
             break;
         }
+        
+        case S_RESP_SEARCH_MESSAGES: {
+            qDebug() << "[Search] Received response: " << jsonStr.left(200);
+            QList<QMap<QString, QString>> results;
+            // Parse messages array from JSON
+            int start = jsonStr.indexOf("\"messages\":[");
+            if (start != -1) {
+                start += 12;  // Skip to array content
+                int end = jsonStr.indexOf("]", start);
+                if (end != -1) {
+                    QString arrayStr = jsonStr.mid(start, end - start);
+                    qDebug() << "[Search] Array content: " << arrayStr.left(200);
+                    int pos = 0;
+                    while ((pos = arrayStr.indexOf("{", pos)) != -1) {
+                        int objEnd = arrayStr.indexOf("}", pos);
+                        if (objEnd == -1) break;
+                        QString objStr = arrayStr.mid(pos, objEnd - pos + 1);
+                        
+                        QMap<QString, QString> msg;
+                        // Parse message_id
+                        int idx = objStr.indexOf("\"message_id\":\"");
+                        if (idx != -1) {
+                            int s = idx + 14;
+                            int e = objStr.indexOf("\"", s);
+                            msg["message_id"] = objStr.mid(s, e - s);
+                        }
+                        // Parse from_username
+                        idx = objStr.indexOf("\"from_username\":\"");
+                        if (idx != -1) {
+                            int s = idx + 17;
+                            int e = objStr.indexOf("\"", s);
+                            msg["from_username"] = objStr.mid(s, e - s);
+                        }
+                        // Parse message
+                        idx = objStr.indexOf("\"message\":\"");
+                        if (idx != -1) {
+                            int s = idx + 11;
+                            int e = objStr.indexOf("\",\"sent_at\"", s);
+                            if (e == -1) e = objStr.indexOf("\"}", s);
+                            if (e != -1) {
+                                msg["message"] = objStr.mid(s, e - s);
+                            }
+                        }
+                        // Parse sent_at
+                        idx = objStr.indexOf("\"sent_at\":\"");
+                        if (idx != -1) {
+                            int s = idx + 11;
+                            int e = objStr.indexOf("\"", s);
+                            msg["sent_at"] = objStr.mid(s, e - s);
+                        }
+                        
+                        if (!msg["message_id"].isEmpty()) {
+                            results.append(msg);
+                        }
+                        pos = objEnd + 1;
+                    }
+                }
+            }
+            qDebug() << "[Search] Parsed results count:" << results.size();
+            emit searchResultsReceived(results);
+            break;
+        }
             
         case S_RESP_GROUP_LIST: {
             QStringList groups;
@@ -772,4 +834,15 @@ void NetworkClient::sendGroupInvite(const QString &groupId, const QString &usern
     body["group_id"] = groupId;
     body["username"] = username;
     sendPacket(C_REQ_GROUP_INVITE, body);
+}
+
+void NetworkClient::sendSearchMessages(const QString &keyword, const QString &chatType, const QString &target)
+{
+    QMap<QString, QString> body;
+    body["token"] = m_token;
+    body["keyword"] = keyword;
+    body["chat_type"] = chatType;
+    body["target"] = target;
+    qDebug() << "[Search] Sending request: keyword=" << keyword << " chatType=" << chatType << " target=" << target;
+    sendPacket(C_REQ_SEARCH_MESSAGES, body);
 }

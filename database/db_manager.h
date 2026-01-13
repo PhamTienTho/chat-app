@@ -94,6 +94,10 @@ public:
     int getPrivateMessageReceiver(int message_id);           // Lấy ID người nhận tin nhắn private
     int getGroupIdFromMessage(int message_id);               // Lấy group_id từ message_id
     
+    // Search message operations
+    vector<map<string, string>> searchPrivateMessages(int user_id1, int user_id2, const string& keyword, int limit = 100);
+    vector<map<string, string>> searchGroupMessages(int group_id, const string& keyword, int limit = 100);
+    
     // Utility
     string escapeString(const string& str);
     void printError();
