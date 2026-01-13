@@ -133,8 +133,8 @@ void MessageBubble::deleteRequested(int _t1)
     QMetaObject::activate(this, &staticMetaObject, 0, _a);
 }
 struct qt_meta_stringdata_ChatWidget_t {
-    QByteArrayData data[67];
-    char stringdata0[1039];
+    QByteArrayData data[69];
+    char stringdata0[1083];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -169,47 +169,49 @@ QT_MOC_LITERAL(22, 294, 12), // "downloadFile"
 QT_MOC_LITERAL(23, 307, 8), // "fileName"
 QT_MOC_LITERAL(24, 316, 18), // "onViewGroupMembers"
 QT_MOC_LITERAL(25, 335, 19), // "onLeaveCurrentGroup"
-QT_MOC_LITERAL(26, 355, 22), // "onGroupMembersReceived"
-QT_MOC_LITERAL(27, 378, 7), // "groupId"
-QT_MOC_LITERAL(28, 386, 9), // "groupName"
-QT_MOC_LITERAL(29, 396, 27), // "QList<QPair<QString,bool> >"
-QT_MOC_LITERAL(30, 424, 7), // "members"
-QT_MOC_LITERAL(31, 432, 20), // "onFriendListReceived"
-QT_MOC_LITERAL(32, 453, 7), // "friends"
-QT_MOC_LITERAL(33, 461, 19), // "onGroupListReceived"
-QT_MOC_LITERAL(34, 481, 6), // "groups"
-QT_MOC_LITERAL(35, 488, 19), // "onAllGroupsReceived"
-QT_MOC_LITERAL(36, 508, 30), // "QList<QPair<QString,QString> >"
-QT_MOC_LITERAL(37, 539, 25), // "onPendingRequestsReceived"
-QT_MOC_LITERAL(38, 565, 8), // "requests"
-QT_MOC_LITERAL(39, 574, 16), // "onPrivateMessage"
-QT_MOC_LITERAL(40, 591, 4), // "from"
-QT_MOC_LITERAL(41, 596, 9), // "messageId"
-QT_MOC_LITERAL(42, 606, 14), // "onGroupMessage"
-QT_MOC_LITERAL(43, 621, 15), // "onFriendRequest"
-QT_MOC_LITERAL(44, 637, 16), // "onFriendAccepted"
-QT_MOC_LITERAL(45, 654, 8), // "username"
-QT_MOC_LITERAL(46, 663, 14), // "onFriendOnline"
-QT_MOC_LITERAL(47, 678, 15), // "onFriendOffline"
-QT_MOC_LITERAL(48, 694, 18), // "onLoadMoreMessages"
-QT_MOC_LITERAL(49, 713, 28), // "onPrivateChatHistoryReceived"
-QT_MOC_LITERAL(50, 742, 14), // "targetUsername"
-QT_MOC_LITERAL(51, 757, 10), // "totalCount"
-QT_MOC_LITERAL(52, 768, 6), // "offset"
-QT_MOC_LITERAL(53, 775, 29), // "QList<QMap<QString,QString> >"
-QT_MOC_LITERAL(54, 805, 8), // "messages"
-QT_MOC_LITERAL(55, 814, 26), // "onGroupChatHistoryReceived"
-QT_MOC_LITERAL(56, 841, 26), // "onMessagesReadNotification"
-QT_MOC_LITERAL(57, 868, 14), // "readerUsername"
-QT_MOC_LITERAL(58, 883, 22), // "onFileDownloadReceived"
-QT_MOC_LITERAL(59, 906, 8), // "fileData"
-QT_MOC_LITERAL(60, 915, 8), // "fileSize"
-QT_MOC_LITERAL(61, 924, 24), // "onDeleteMessageRequested"
-QT_MOC_LITERAL(62, 949, 23), // "onDeleteMessageResponse"
-QT_MOC_LITERAL(63, 973, 16), // "onMessageDeleted"
-QT_MOC_LITERAL(64, 990, 8), // "chatType"
-QT_MOC_LITERAL(65, 999, 20), // "onPrivateMessageSent"
-QT_MOC_LITERAL(66, 1020, 18) // "onGroupMessageSent"
+QT_MOC_LITERAL(26, 355, 21), // "onInviteMemberToGroup"
+QT_MOC_LITERAL(27, 377, 21), // "onGroupInviteResponse"
+QT_MOC_LITERAL(28, 399, 22), // "onGroupMembersReceived"
+QT_MOC_LITERAL(29, 422, 7), // "groupId"
+QT_MOC_LITERAL(30, 430, 9), // "groupName"
+QT_MOC_LITERAL(31, 440, 27), // "QList<QPair<QString,bool> >"
+QT_MOC_LITERAL(32, 468, 7), // "members"
+QT_MOC_LITERAL(33, 476, 20), // "onFriendListReceived"
+QT_MOC_LITERAL(34, 497, 7), // "friends"
+QT_MOC_LITERAL(35, 505, 19), // "onGroupListReceived"
+QT_MOC_LITERAL(36, 525, 6), // "groups"
+QT_MOC_LITERAL(37, 532, 19), // "onAllGroupsReceived"
+QT_MOC_LITERAL(38, 552, 30), // "QList<QPair<QString,QString> >"
+QT_MOC_LITERAL(39, 583, 25), // "onPendingRequestsReceived"
+QT_MOC_LITERAL(40, 609, 8), // "requests"
+QT_MOC_LITERAL(41, 618, 16), // "onPrivateMessage"
+QT_MOC_LITERAL(42, 635, 4), // "from"
+QT_MOC_LITERAL(43, 640, 9), // "messageId"
+QT_MOC_LITERAL(44, 650, 14), // "onGroupMessage"
+QT_MOC_LITERAL(45, 665, 15), // "onFriendRequest"
+QT_MOC_LITERAL(46, 681, 16), // "onFriendAccepted"
+QT_MOC_LITERAL(47, 698, 8), // "username"
+QT_MOC_LITERAL(48, 707, 14), // "onFriendOnline"
+QT_MOC_LITERAL(49, 722, 15), // "onFriendOffline"
+QT_MOC_LITERAL(50, 738, 18), // "onLoadMoreMessages"
+QT_MOC_LITERAL(51, 757, 28), // "onPrivateChatHistoryReceived"
+QT_MOC_LITERAL(52, 786, 14), // "targetUsername"
+QT_MOC_LITERAL(53, 801, 10), // "totalCount"
+QT_MOC_LITERAL(54, 812, 6), // "offset"
+QT_MOC_LITERAL(55, 819, 29), // "QList<QMap<QString,QString> >"
+QT_MOC_LITERAL(56, 849, 8), // "messages"
+QT_MOC_LITERAL(57, 858, 26), // "onGroupChatHistoryReceived"
+QT_MOC_LITERAL(58, 885, 26), // "onMessagesReadNotification"
+QT_MOC_LITERAL(59, 912, 14), // "readerUsername"
+QT_MOC_LITERAL(60, 927, 22), // "onFileDownloadReceived"
+QT_MOC_LITERAL(61, 950, 8), // "fileData"
+QT_MOC_LITERAL(62, 959, 8), // "fileSize"
+QT_MOC_LITERAL(63, 968, 24), // "onDeleteMessageRequested"
+QT_MOC_LITERAL(64, 993, 23), // "onDeleteMessageResponse"
+QT_MOC_LITERAL(65, 1017, 16), // "onMessageDeleted"
+QT_MOC_LITERAL(66, 1034, 8), // "chatType"
+QT_MOC_LITERAL(67, 1043, 20), // "onPrivateMessageSent"
+QT_MOC_LITERAL(68, 1064, 18) // "onGroupMessageSent"
 
     },
     "ChatWidget\0logoutRequested\0\0onSendClicked\0"
@@ -221,7 +223,8 @@ QT_MOC_LITERAL(66, 1020, 18) // "onGroupMessageSent"
     "onJoinGroup\0onLeaveGroup\0onViewPendingRequests\0"
     "onUnfriend\0onAttachFile\0downloadFile\0"
     "fileName\0onViewGroupMembers\0"
-    "onLeaveCurrentGroup\0onGroupMembersReceived\0"
+    "onLeaveCurrentGroup\0onInviteMemberToGroup\0"
+    "onGroupInviteResponse\0onGroupMembersReceived\0"
     "groupId\0groupName\0QList<QPair<QString,bool> >\0"
     "members\0onFriendListReceived\0friends\0"
     "onGroupListReceived\0groups\0"
@@ -250,7 +253,7 @@ static const uint qt_meta_data_ChatWidget[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      40,   14, // methods
+      42,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -258,48 +261,50 @@ static const uint qt_meta_data_ChatWidget[] = {
        1,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  214,    2, 0x06 /* Public */,
+       1,    0,  224,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-       3,    0,  215,    2, 0x08 /* Private */,
-       4,    0,  216,    2, 0x08 /* Private */,
-       5,    0,  217,    2, 0x08 /* Private */,
-       6,    2,  218,    2, 0x08 /* Private */,
-       9,    1,  223,    2, 0x08 /* Private */,
-      12,    1,  226,    2, 0x08 /* Private */,
-      13,    0,  229,    2, 0x08 /* Private */,
-      14,    0,  230,    2, 0x08 /* Private */,
-      15,    0,  231,    2, 0x08 /* Private */,
-      16,    0,  232,    2, 0x08 /* Private */,
-      17,    0,  233,    2, 0x08 /* Private */,
-      18,    0,  234,    2, 0x08 /* Private */,
-      19,    0,  235,    2, 0x08 /* Private */,
-      20,    0,  236,    2, 0x08 /* Private */,
-      21,    0,  237,    2, 0x08 /* Private */,
-      22,    1,  238,    2, 0x0a /* Public */,
-      24,    0,  241,    2, 0x08 /* Private */,
-      25,    0,  242,    2, 0x08 /* Private */,
-      26,    3,  243,    2, 0x08 /* Private */,
-      31,    1,  250,    2, 0x08 /* Private */,
-      33,    1,  253,    2, 0x08 /* Private */,
-      35,    1,  256,    2, 0x08 /* Private */,
-      37,    1,  259,    2, 0x08 /* Private */,
-      39,    3,  262,    2, 0x08 /* Private */,
-      42,    5,  269,    2, 0x08 /* Private */,
-      43,    1,  280,    2, 0x08 /* Private */,
-      44,    1,  283,    2, 0x08 /* Private */,
-      46,    1,  286,    2, 0x08 /* Private */,
-      47,    1,  289,    2, 0x08 /* Private */,
-      48,    0,  292,    2, 0x08 /* Private */,
-      49,    4,  293,    2, 0x08 /* Private */,
-      55,    5,  302,    2, 0x08 /* Private */,
-      56,    1,  313,    2, 0x08 /* Private */,
-      58,    3,  316,    2, 0x08 /* Private */,
-      61,    1,  323,    2, 0x08 /* Private */,
-      62,    3,  326,    2, 0x08 /* Private */,
-      63,    3,  333,    2, 0x08 /* Private */,
-      65,    2,  340,    2, 0x08 /* Private */,
-      66,    2,  345,    2, 0x08 /* Private */,
+       3,    0,  225,    2, 0x08 /* Private */,
+       4,    0,  226,    2, 0x08 /* Private */,
+       5,    0,  227,    2, 0x08 /* Private */,
+       6,    2,  228,    2, 0x08 /* Private */,
+       9,    1,  233,    2, 0x08 /* Private */,
+      12,    1,  236,    2, 0x08 /* Private */,
+      13,    0,  239,    2, 0x08 /* Private */,
+      14,    0,  240,    2, 0x08 /* Private */,
+      15,    0,  241,    2, 0x08 /* Private */,
+      16,    0,  242,    2, 0x08 /* Private */,
+      17,    0,  243,    2, 0x08 /* Private */,
+      18,    0,  244,    2, 0x08 /* Private */,
+      19,    0,  245,    2, 0x08 /* Private */,
+      20,    0,  246,    2, 0x08 /* Private */,
+      21,    0,  247,    2, 0x08 /* Private */,
+      22,    1,  248,    2, 0x0a /* Public */,
+      24,    0,  251,    2, 0x08 /* Private */,
+      25,    0,  252,    2, 0x08 /* Private */,
+      26,    0,  253,    2, 0x08 /* Private */,
+      27,    2,  254,    2, 0x08 /* Private */,
+      28,    3,  259,    2, 0x08 /* Private */,
+      33,    1,  266,    2, 0x08 /* Private */,
+      35,    1,  269,    2, 0x08 /* Private */,
+      37,    1,  272,    2, 0x08 /* Private */,
+      39,    1,  275,    2, 0x08 /* Private */,
+      41,    3,  278,    2, 0x08 /* Private */,
+      44,    5,  285,    2, 0x08 /* Private */,
+      45,    1,  296,    2, 0x08 /* Private */,
+      46,    1,  299,    2, 0x08 /* Private */,
+      48,    1,  302,    2, 0x08 /* Private */,
+      49,    1,  305,    2, 0x08 /* Private */,
+      50,    0,  308,    2, 0x08 /* Private */,
+      51,    4,  309,    2, 0x08 /* Private */,
+      57,    5,  318,    2, 0x08 /* Private */,
+      58,    1,  329,    2, 0x08 /* Private */,
+      60,    3,  332,    2, 0x08 /* Private */,
+      63,    1,  339,    2, 0x08 /* Private */,
+      64,    3,  342,    2, 0x08 /* Private */,
+      65,    3,  349,    2, 0x08 /* Private */,
+      67,    2,  356,    2, 0x08 /* Private */,
+      68,    2,  361,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -323,27 +328,29 @@ static const uint qt_meta_data_ChatWidget[] = {
     QMetaType::Void, QMetaType::QString,   23,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, QMetaType::QString, QMetaType::QString, 0x80000000 | 29,   27,   28,   30,
-    QMetaType::Void, 0x80000000 | 29,   32,
-    QMetaType::Void, QMetaType::QStringList,   34,
-    QMetaType::Void, 0x80000000 | 36,   34,
-    QMetaType::Void, QMetaType::QStringList,   38,
-    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::Int,   40,    8,   41,
-    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::QString, QMetaType::QString, QMetaType::Int,   27,   28,   40,    8,   41,
-    QMetaType::Void, QMetaType::QString,   40,
-    QMetaType::Void, QMetaType::QString,   45,
-    QMetaType::Void, QMetaType::QString,   45,
-    QMetaType::Void, QMetaType::QString,   45,
     QMetaType::Void,
-    QMetaType::Void, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 53,   50,   51,   52,   54,
-    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 53,   27,   28,   51,   52,   54,
-    QMetaType::Void, QMetaType::QString,   57,
-    QMetaType::Void, QMetaType::QString, QMetaType::QByteArray, QMetaType::LongLong,   23,   59,   60,
-    QMetaType::Void, QMetaType::Int,   41,
-    QMetaType::Void, QMetaType::Bool, QMetaType::QString, QMetaType::Int,    7,    8,   41,
-    QMetaType::Void, QMetaType::Int, QMetaType::QString, QMetaType::QString,   41,   64,   27,
-    QMetaType::Void, QMetaType::Int, QMetaType::QString,   41,   50,
-    QMetaType::Void, QMetaType::Int, QMetaType::QString,   41,   27,
+    QMetaType::Void, QMetaType::Bool, QMetaType::QString,    7,    8,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString, 0x80000000 | 31,   29,   30,   32,
+    QMetaType::Void, 0x80000000 | 31,   34,
+    QMetaType::Void, QMetaType::QStringList,   36,
+    QMetaType::Void, 0x80000000 | 38,   36,
+    QMetaType::Void, QMetaType::QStringList,   40,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::Int,   42,    8,   43,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::QString, QMetaType::QString, QMetaType::Int,   29,   30,   42,    8,   43,
+    QMetaType::Void, QMetaType::QString,   42,
+    QMetaType::Void, QMetaType::QString,   47,
+    QMetaType::Void, QMetaType::QString,   47,
+    QMetaType::Void, QMetaType::QString,   47,
+    QMetaType::Void,
+    QMetaType::Void, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 55,   52,   53,   54,   56,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 55,   29,   30,   53,   54,   56,
+    QMetaType::Void, QMetaType::QString,   59,
+    QMetaType::Void, QMetaType::QString, QMetaType::QByteArray, QMetaType::LongLong,   23,   61,   62,
+    QMetaType::Void, QMetaType::Int,   43,
+    QMetaType::Void, QMetaType::Bool, QMetaType::QString, QMetaType::Int,    7,    8,   43,
+    QMetaType::Void, QMetaType::Int, QMetaType::QString, QMetaType::QString,   43,   66,   29,
+    QMetaType::Void, QMetaType::Int, QMetaType::QString,   43,   52,
+    QMetaType::Void, QMetaType::Int, QMetaType::QString,   43,   29,
 
        0        // eod
 };
@@ -373,27 +380,29 @@ void ChatWidget::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 16: _t->downloadFile((*reinterpret_cast< const QString(*)>(_a[1]))); break;
         case 17: _t->onViewGroupMembers(); break;
         case 18: _t->onLeaveCurrentGroup(); break;
-        case 19: _t->onGroupMembersReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QList<QPair<QString,bool> >(*)>(_a[3]))); break;
-        case 20: _t->onFriendListReceived((*reinterpret_cast< const QList<QPair<QString,bool> >(*)>(_a[1]))); break;
-        case 21: _t->onGroupListReceived((*reinterpret_cast< const QStringList(*)>(_a[1]))); break;
-        case 22: _t->onAllGroupsReceived((*reinterpret_cast< const QList<QPair<QString,QString> >(*)>(_a[1]))); break;
-        case 23: _t->onPendingRequestsReceived((*reinterpret_cast< const QStringList(*)>(_a[1]))); break;
-        case 24: _t->onPrivateMessage((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3]))); break;
-        case 25: _t->onGroupMessage((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QString(*)>(_a[3])),(*reinterpret_cast< const QString(*)>(_a[4])),(*reinterpret_cast< int(*)>(_a[5]))); break;
-        case 26: _t->onFriendRequest((*reinterpret_cast< const QString(*)>(_a[1]))); break;
-        case 27: _t->onFriendAccepted((*reinterpret_cast< const QString(*)>(_a[1]))); break;
-        case 28: _t->onFriendOnline((*reinterpret_cast< const QString(*)>(_a[1]))); break;
-        case 29: _t->onFriendOffline((*reinterpret_cast< const QString(*)>(_a[1]))); break;
-        case 30: _t->onLoadMoreMessages(); break;
-        case 31: _t->onPrivateChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[4]))); break;
-        case 32: _t->onGroupChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< int(*)>(_a[4])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[5]))); break;
-        case 33: _t->onMessagesReadNotification((*reinterpret_cast< const QString(*)>(_a[1]))); break;
-        case 34: _t->onFileDownloadReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QByteArray(*)>(_a[2])),(*reinterpret_cast< qint64(*)>(_a[3]))); break;
-        case 35: _t->onDeleteMessageRequested((*reinterpret_cast< int(*)>(_a[1]))); break;
-        case 36: _t->onDeleteMessageResponse((*reinterpret_cast< bool(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3]))); break;
-        case 37: _t->onMessageDeleted((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QString(*)>(_a[3]))); break;
-        case 38: _t->onPrivateMessageSent((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
-        case 39: _t->onGroupMessageSent((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
+        case 19: _t->onInviteMemberToGroup(); break;
+        case 20: _t->onGroupInviteResponse((*reinterpret_cast< bool(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
+        case 21: _t->onGroupMembersReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QList<QPair<QString,bool> >(*)>(_a[3]))); break;
+        case 22: _t->onFriendListReceived((*reinterpret_cast< const QList<QPair<QString,bool> >(*)>(_a[1]))); break;
+        case 23: _t->onGroupListReceived((*reinterpret_cast< const QStringList(*)>(_a[1]))); break;
+        case 24: _t->onAllGroupsReceived((*reinterpret_cast< const QList<QPair<QString,QString> >(*)>(_a[1]))); break;
+        case 25: _t->onPendingRequestsReceived((*reinterpret_cast< const QStringList(*)>(_a[1]))); break;
+        case 26: _t->onPrivateMessage((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3]))); break;
+        case 27: _t->onGroupMessage((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QString(*)>(_a[3])),(*reinterpret_cast< const QString(*)>(_a[4])),(*reinterpret_cast< int(*)>(_a[5]))); break;
+        case 28: _t->onFriendRequest((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 29: _t->onFriendAccepted((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 30: _t->onFriendOnline((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 31: _t->onFriendOffline((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 32: _t->onLoadMoreMessages(); break;
+        case 33: _t->onPrivateChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[4]))); break;
+        case 34: _t->onGroupChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< int(*)>(_a[4])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[5]))); break;
+        case 35: _t->onMessagesReadNotification((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 36: _t->onFileDownloadReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QByteArray(*)>(_a[2])),(*reinterpret_cast< qint64(*)>(_a[3]))); break;
+        case 37: _t->onDeleteMessageRequested((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 38: _t->onDeleteMessageResponse((*reinterpret_cast< bool(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3]))); break;
+        case 39: _t->onMessageDeleted((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QString(*)>(_a[3]))); break;
+        case 40: _t->onPrivateMessageSent((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
+        case 41: _t->onGroupMessageSent((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::IndexOfMethod) {
@@ -437,13 +446,13 @@ int ChatWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 40)
+        if (_id < 42)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 40;
+        _id -= 42;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 40)
+        if (_id < 42)
             *reinterpret_cast<int*>(_a[0]) = -1;
-        _id -= 40;
+        _id -= 42;
     }
     return _id;
 }

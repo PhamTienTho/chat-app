@@ -23,8 +23,8 @@ QT_BEGIN_MOC_NAMESPACE
 QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_NetworkClient_t {
-    QByteArrayData data[64];
-    char stringdata0[939];
+    QByteArrayData data[65];
+    char stringdata0[959];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -77,26 +77,27 @@ QT_MOC_LITERAL(40, 563, 12), // "friendOnline"
 QT_MOC_LITERAL(41, 576, 13), // "friendOffline"
 QT_MOC_LITERAL(42, 590, 15), // "userJoinedGroup"
 QT_MOC_LITERAL(43, 606, 13), // "userLeftGroup"
-QT_MOC_LITERAL(44, 620, 26), // "privateChatHistoryReceived"
-QT_MOC_LITERAL(45, 647, 10), // "totalCount"
-QT_MOC_LITERAL(46, 658, 6), // "offset"
-QT_MOC_LITERAL(47, 665, 29), // "QList<QMap<QString,QString> >"
-QT_MOC_LITERAL(48, 695, 8), // "messages"
-QT_MOC_LITERAL(49, 704, 24), // "groupChatHistoryReceived"
-QT_MOC_LITERAL(50, 729, 24), // "messagesReadNotification"
-QT_MOC_LITERAL(51, 754, 14), // "readerUsername"
-QT_MOC_LITERAL(52, 769, 20), // "fileDownloadReceived"
-QT_MOC_LITERAL(53, 790, 8), // "fileName"
-QT_MOC_LITERAL(54, 799, 8), // "fileData"
-QT_MOC_LITERAL(55, 808, 8), // "fileSize"
-QT_MOC_LITERAL(56, 817, 21), // "deleteMessageResponse"
-QT_MOC_LITERAL(57, 839, 14), // "messageDeleted"
-QT_MOC_LITERAL(58, 854, 8), // "chatType"
-QT_MOC_LITERAL(59, 863, 11), // "onReadyRead"
-QT_MOC_LITERAL(60, 875, 11), // "onConnected"
-QT_MOC_LITERAL(61, 887, 14), // "onDisconnected"
-QT_MOC_LITERAL(62, 902, 7), // "onError"
-QT_MOC_LITERAL(63, 910, 28) // "QAbstractSocket::SocketError"
+QT_MOC_LITERAL(44, 620, 19), // "groupInviteResponse"
+QT_MOC_LITERAL(45, 640, 26), // "privateChatHistoryReceived"
+QT_MOC_LITERAL(46, 667, 10), // "totalCount"
+QT_MOC_LITERAL(47, 678, 6), // "offset"
+QT_MOC_LITERAL(48, 685, 29), // "QList<QMap<QString,QString> >"
+QT_MOC_LITERAL(49, 715, 8), // "messages"
+QT_MOC_LITERAL(50, 724, 24), // "groupChatHistoryReceived"
+QT_MOC_LITERAL(51, 749, 24), // "messagesReadNotification"
+QT_MOC_LITERAL(52, 774, 14), // "readerUsername"
+QT_MOC_LITERAL(53, 789, 20), // "fileDownloadReceived"
+QT_MOC_LITERAL(54, 810, 8), // "fileName"
+QT_MOC_LITERAL(55, 819, 8), // "fileData"
+QT_MOC_LITERAL(56, 828, 8), // "fileSize"
+QT_MOC_LITERAL(57, 837, 21), // "deleteMessageResponse"
+QT_MOC_LITERAL(58, 859, 14), // "messageDeleted"
+QT_MOC_LITERAL(59, 874, 8), // "chatType"
+QT_MOC_LITERAL(60, 883, 11), // "onReadyRead"
+QT_MOC_LITERAL(61, 895, 11), // "onConnected"
+QT_MOC_LITERAL(62, 907, 14), // "onDisconnected"
+QT_MOC_LITERAL(63, 922, 7), // "onError"
+QT_MOC_LITERAL(64, 930, 28) // "QAbstractSocket::SocketError"
 
     },
     "NetworkClient\0connected\0\0disconnected\0"
@@ -116,8 +117,8 @@ QT_MOC_LITERAL(63, 910, 28) // "QAbstractSocket::SocketError"
     "friendRequestReceived\0friendAccepted\0"
     "username\0friendOnline\0friendOffline\0"
     "userJoinedGroup\0userLeftGroup\0"
-    "privateChatHistoryReceived\0totalCount\0"
-    "offset\0QList<QMap<QString,QString> >\0"
+    "groupInviteResponse\0privateChatHistoryReceived\0"
+    "totalCount\0offset\0QList<QMap<QString,QString> >\0"
     "messages\0groupChatHistoryReceived\0"
     "messagesReadNotification\0readerUsername\0"
     "fileDownloadReceived\0fileName\0fileData\0"
@@ -134,50 +135,51 @@ static const uint qt_meta_data_NetworkClient[] = {
        8,       // revision
        0,       // classname
        0,    0, // classinfo
-      34,   14, // methods
+      35,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
-      30,       // signalCount
+      31,       // signalCount
 
  // signals: name, argc, parameters, tag, flags
-       1,    0,  184,    2, 0x06 /* Public */,
-       3,    0,  185,    2, 0x06 /* Public */,
-       4,    1,  186,    2, 0x06 /* Public */,
-       6,    3,  189,    2, 0x06 /* Public */,
-      10,    2,  196,    2, 0x06 /* Public */,
-      11,    2,  201,    2, 0x06 /* Public */,
-      12,    3,  206,    2, 0x06 /* Public */,
-      14,    1,  213,    2, 0x06 /* Public */,
-      16,    1,  216,    2, 0x06 /* Public */,
-      18,    1,  219,    2, 0x06 /* Public */,
-      20,    3,  222,    2, 0x06 /* Public */,
-      24,    1,  229,    2, 0x06 /* Public */,
-      26,    1,  232,    2, 0x06 /* Public */,
-      28,    1,  235,    2, 0x06 /* Public */,
-      30,    3,  238,    2, 0x06 /* Public */,
-      33,    2,  245,    2, 0x06 /* Public */,
-      35,    5,  250,    2, 0x06 /* Public */,
-      36,    2,  261,    2, 0x06 /* Public */,
-      37,    1,  266,    2, 0x06 /* Public */,
-      38,    1,  269,    2, 0x06 /* Public */,
-      40,    1,  272,    2, 0x06 /* Public */,
-      41,    1,  275,    2, 0x06 /* Public */,
-      42,    2,  278,    2, 0x06 /* Public */,
-      43,    2,  283,    2, 0x06 /* Public */,
-      44,    4,  288,    2, 0x06 /* Public */,
-      49,    5,  297,    2, 0x06 /* Public */,
-      50,    1,  308,    2, 0x06 /* Public */,
-      52,    3,  311,    2, 0x06 /* Public */,
-      56,    3,  318,    2, 0x06 /* Public */,
-      57,    3,  325,    2, 0x06 /* Public */,
+       1,    0,  189,    2, 0x06 /* Public */,
+       3,    0,  190,    2, 0x06 /* Public */,
+       4,    1,  191,    2, 0x06 /* Public */,
+       6,    3,  194,    2, 0x06 /* Public */,
+      10,    2,  201,    2, 0x06 /* Public */,
+      11,    2,  206,    2, 0x06 /* Public */,
+      12,    3,  211,    2, 0x06 /* Public */,
+      14,    1,  218,    2, 0x06 /* Public */,
+      16,    1,  221,    2, 0x06 /* Public */,
+      18,    1,  224,    2, 0x06 /* Public */,
+      20,    3,  227,    2, 0x06 /* Public */,
+      24,    1,  234,    2, 0x06 /* Public */,
+      26,    1,  237,    2, 0x06 /* Public */,
+      28,    1,  240,    2, 0x06 /* Public */,
+      30,    3,  243,    2, 0x06 /* Public */,
+      33,    2,  250,    2, 0x06 /* Public */,
+      35,    5,  255,    2, 0x06 /* Public */,
+      36,    2,  266,    2, 0x06 /* Public */,
+      37,    1,  271,    2, 0x06 /* Public */,
+      38,    1,  274,    2, 0x06 /* Public */,
+      40,    1,  277,    2, 0x06 /* Public */,
+      41,    1,  280,    2, 0x06 /* Public */,
+      42,    2,  283,    2, 0x06 /* Public */,
+      43,    2,  288,    2, 0x06 /* Public */,
+      44,    2,  293,    2, 0x06 /* Public */,
+      45,    4,  298,    2, 0x06 /* Public */,
+      50,    5,  307,    2, 0x06 /* Public */,
+      51,    1,  318,    2, 0x06 /* Public */,
+      53,    3,  321,    2, 0x06 /* Public */,
+      57,    3,  328,    2, 0x06 /* Public */,
+      58,    3,  335,    2, 0x06 /* Public */,
 
  // slots: name, argc, parameters, tag, flags
-      59,    0,  332,    2, 0x08 /* Private */,
-      60,    0,  333,    2, 0x08 /* Private */,
-      61,    0,  334,    2, 0x08 /* Private */,
-      62,    1,  335,    2, 0x08 /* Private */,
+      60,    0,  342,    2, 0x08 /* Private */,
+      61,    0,  343,    2, 0x08 /* Private */,
+      62,    0,  344,    2, 0x08 /* Private */,
+      63,    1,  345,    2, 0x08 /* Private */,
 
  // signals: parameters
     QMetaType::Void,
@@ -204,18 +206,19 @@ static const uint qt_meta_data_NetworkClient[] = {
     QMetaType::Void, QMetaType::QString,   39,
     QMetaType::Void, QMetaType::QString, QMetaType::QString,   13,   39,
     QMetaType::Void, QMetaType::QString, QMetaType::QString,   13,   39,
-    QMetaType::Void, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 47,   34,   45,   46,   48,
-    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 47,   13,   21,   45,   46,   48,
-    QMetaType::Void, QMetaType::QString,   51,
-    QMetaType::Void, QMetaType::QString, QMetaType::QByteArray, QMetaType::LongLong,   53,   54,   55,
+    QMetaType::Void, QMetaType::Bool, QMetaType::QString,    7,    8,
+    QMetaType::Void, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 48,   34,   46,   47,   49,
+    QMetaType::Void, QMetaType::QString, QMetaType::QString, QMetaType::Int, QMetaType::Int, 0x80000000 | 48,   13,   21,   46,   47,   49,
+    QMetaType::Void, QMetaType::QString,   52,
+    QMetaType::Void, QMetaType::QString, QMetaType::QByteArray, QMetaType::LongLong,   54,   55,   56,
     QMetaType::Void, QMetaType::Bool, QMetaType::QString, QMetaType::Int,    7,    8,   32,
-    QMetaType::Void, QMetaType::Int, QMetaType::QString, QMetaType::QString,   32,   58,   13,
+    QMetaType::Void, QMetaType::Int, QMetaType::QString, QMetaType::QString,   32,   59,   13,
 
  // slots: parameters
     QMetaType::Void,
     QMetaType::Void,
     QMetaType::Void,
-    QMetaType::Void, 0x80000000 | 63,    5,
+    QMetaType::Void, 0x80000000 | 64,    5,
 
        0        // eod
 };
@@ -250,22 +253,23 @@ void NetworkClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
         case 21: _t->friendOffline((*reinterpret_cast< const QString(*)>(_a[1]))); break;
         case 22: _t->userJoinedGroup((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
         case 23: _t->userLeftGroup((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
-        case 24: _t->privateChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[4]))); break;
-        case 25: _t->groupChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< int(*)>(_a[4])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[5]))); break;
-        case 26: _t->messagesReadNotification((*reinterpret_cast< const QString(*)>(_a[1]))); break;
-        case 27: _t->fileDownloadReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QByteArray(*)>(_a[2])),(*reinterpret_cast< qint64(*)>(_a[3]))); break;
-        case 28: _t->deleteMessageResponse((*reinterpret_cast< bool(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3]))); break;
-        case 29: _t->messageDeleted((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QString(*)>(_a[3]))); break;
-        case 30: _t->onReadyRead(); break;
-        case 31: _t->onConnected(); break;
-        case 32: _t->onDisconnected(); break;
-        case 33: _t->onError((*reinterpret_cast< QAbstractSocket::SocketError(*)>(_a[1]))); break;
+        case 24: _t->groupInviteResponse((*reinterpret_cast< bool(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2]))); break;
+        case 25: _t->privateChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< int(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[4]))); break;
+        case 26: _t->groupChatHistoryReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3])),(*reinterpret_cast< int(*)>(_a[4])),(*reinterpret_cast< const QList<QMap<QString,QString> >(*)>(_a[5]))); break;
+        case 27: _t->messagesReadNotification((*reinterpret_cast< const QString(*)>(_a[1]))); break;
+        case 28: _t->fileDownloadReceived((*reinterpret_cast< const QString(*)>(_a[1])),(*reinterpret_cast< const QByteArray(*)>(_a[2])),(*reinterpret_cast< qint64(*)>(_a[3]))); break;
+        case 29: _t->deleteMessageResponse((*reinterpret_cast< bool(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< int(*)>(_a[3]))); break;
+        case 30: _t->messageDeleted((*reinterpret_cast< int(*)>(_a[1])),(*reinterpret_cast< const QString(*)>(_a[2])),(*reinterpret_cast< const QString(*)>(_a[3]))); break;
+        case 31: _t->onReadyRead(); break;
+        case 32: _t->onConnected(); break;
+        case 33: _t->onDisconnected(); break;
+        case 34: _t->onError((*reinterpret_cast< QAbstractSocket::SocketError(*)>(_a[1]))); break;
         default: ;
         }
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         switch (_id) {
         default: *reinterpret_cast<int*>(_a[0]) = -1; break;
-        case 33:
+        case 34:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<int*>(_a[0]) = -1; break;
             case 0:
@@ -444,44 +448,51 @@ void NetworkClient::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _i
             }
         }
         {
+            using _t = void (NetworkClient::*)(bool , const QString & );
+            if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::groupInviteResponse)) {
+                *result = 24;
+                return;
+            }
+        }
+        {
             using _t = void (NetworkClient::*)(const QString & , int , int , const QList<QMap<QString,QString>> & );
             if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::privateChatHistoryReceived)) {
-                *result = 24;
+                *result = 25;
                 return;
             }
         }
         {
             using _t = void (NetworkClient::*)(const QString & , const QString & , int , int , const QList<QMap<QString,QString>> & );
             if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::groupChatHistoryReceived)) {
-                *result = 25;
+                *result = 26;
                 return;
             }
         }
         {
             using _t = void (NetworkClient::*)(const QString & );
             if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::messagesReadNotification)) {
-                *result = 26;
+                *result = 27;
                 return;
             }
         }
         {
             using _t = void (NetworkClient::*)(const QString & , const QByteArray & , qint64 );
             if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::fileDownloadReceived)) {
-                *result = 27;
+                *result = 28;
                 return;
             }
         }
         {
             using _t = void (NetworkClient::*)(bool , const QString & , int );
             if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::deleteMessageResponse)) {
-                *result = 28;
+                *result = 29;
                 return;
             }
         }
         {
             using _t = void (NetworkClient::*)(int , const QString & , const QString & );
             if (*reinterpret_cast<_t *>(_a[1]) == static_cast<_t>(&NetworkClient::messageDeleted)) {
-                *result = 29;
+                *result = 30;
                 return;
             }
         }
@@ -517,13 +528,13 @@ int NetworkClient::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 34)
+        if (_id < 35)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 34;
+        _id -= 35;
     } else if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 34)
+        if (_id < 35)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 34;
+        _id -= 35;
     }
     return _id;
 }
@@ -695,45 +706,52 @@ void NetworkClient::userLeftGroup(const QString & _t1, const QString & _t2)
 }
 
 // SIGNAL 24
-void NetworkClient::privateChatHistoryReceived(const QString & _t1, int _t2, int _t3, const QList<QMap<QString,QString>> & _t4)
+void NetworkClient::groupInviteResponse(bool _t1, const QString & _t2)
 {
-    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t4))) };
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))) };
     QMetaObject::activate(this, &staticMetaObject, 24, _a);
 }
 
 // SIGNAL 25
-void NetworkClient::groupChatHistoryReceived(const QString & _t1, const QString & _t2, int _t3, int _t4, const QList<QMap<QString,QString>> & _t5)
+void NetworkClient::privateChatHistoryReceived(const QString & _t1, int _t2, int _t3, const QList<QMap<QString,QString>> & _t4)
 {
-    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t4))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t5))) };
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t4))) };
     QMetaObject::activate(this, &staticMetaObject, 25, _a);
 }
 
 // SIGNAL 26
-void NetworkClient::messagesReadNotification(const QString & _t1)
+void NetworkClient::groupChatHistoryReceived(const QString & _t1, const QString & _t2, int _t3, int _t4, const QList<QMap<QString,QString>> & _t5)
 {
-    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))) };
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t4))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t5))) };
     QMetaObject::activate(this, &staticMetaObject, 26, _a);
 }
 
 // SIGNAL 27
-void NetworkClient::fileDownloadReceived(const QString & _t1, const QByteArray & _t2, qint64 _t3)
+void NetworkClient::messagesReadNotification(const QString & _t1)
 {
-    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))) };
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))) };
     QMetaObject::activate(this, &staticMetaObject, 27, _a);
 }
 
 // SIGNAL 28
-void NetworkClient::deleteMessageResponse(bool _t1, const QString & _t2, int _t3)
+void NetworkClient::fileDownloadReceived(const QString & _t1, const QByteArray & _t2, qint64 _t3)
 {
     void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))) };
     QMetaObject::activate(this, &staticMetaObject, 28, _a);
 }
 
 // SIGNAL 29
-void NetworkClient::messageDeleted(int _t1, const QString & _t2, const QString & _t3)
+void NetworkClient::deleteMessageResponse(bool _t1, const QString & _t2, int _t3)
 {
     void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))) };
     QMetaObject::activate(this, &staticMetaObject, 29, _a);
+}
+
+// SIGNAL 30
+void NetworkClient::messageDeleted(int _t1, const QString & _t2, const QString & _t3)
+{
+    void *_a[] = { nullptr, const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t1))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t2))), const_cast<void*>(reinterpret_cast<const void*>(std::addressof(_t3))) };
+    QMetaObject::activate(this, &staticMetaObject, 30, _a);
 }
 QT_WARNING_POP
 QT_END_MOC_NAMESPACE

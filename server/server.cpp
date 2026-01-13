@@ -713,6 +713,107 @@ void handle_group_leave(int client_socket, const map<string, string>& body) {
     cout << "✓ User " << username << " left group " << group_name << endl;
 }
 
+void handle_group_invite(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string group_id_str = body.count("group_id") ? body.at("group_id") : "";
+    string invite_username = body.count("username") ? body.at("username") : "";
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Invalid token";
+        send_packet(client_socket, S_RESP_GROUP_INVITE, STATUS_UNAUTHORIZED, JsonHelper::build(resp));
+        return;
+    }
+    
+    int group_id = atoi(group_id_str.c_str());
+    if (group_id <= 0 || invite_username.empty()) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Missing group_id or username";
+        send_packet(client_socket, S_RESP_GROUP_INVITE, STATUS_BAD_REQUEST, JsonHelper::build(resp));
+        return;
+    }
+    
+    // Kiểm tra người mời có trong nhóm không
+    if (!db->isGroupMember(group_id, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Bạn không phải thành viên nhóm này";
+        send_packet(client_socket, S_RESP_GROUP_INVITE, STATUS_FORBIDDEN, JsonHelper::build(resp));
+        return;
+    }
+    
+    // Lấy user_id của người được mời
+    int invite_user_id = db->getUserId(invite_username);
+    if (invite_user_id == -1) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Người dùng không tồn tại";
+        send_packet(client_socket, S_RESP_GROUP_INVITE, STATUS_NOT_FOUND, JsonHelper::build(resp));
+        return;
+    }
+    
+    // Kiểm tra người được mời đã ở trong nhóm chưa
+    if (db->isGroupMember(group_id, invite_user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Người dùng đã là thành viên nhóm";
+        send_packet(client_socket, S_RESP_GROUP_INVITE, STATUS_CONFLICT, JsonHelper::build(resp));
+        return;
+    }
+    
+    string inviter_username = db->getUsername(user_id);
+    string group_name = db->getGroupName(group_id);
+    
+    // Thêm người được mời vào nhóm
+    bool added = db->addGroupMember(group_id, invite_user_id, "member");
+    
+    // Lấy danh sách thành viên (bao gồm người mới)
+    vector<int> member_ids = db->getGroupMembers(group_id);
+    pthread_mutex_unlock(&db_mutex);
+    
+    if (!added) {
+        map<string, string> resp;
+        resp["message"] = "Không thể thêm thành viên";
+        send_packet(client_socket, S_RESP_GROUP_INVITE, STATUS_SERVER_ERROR, JsonHelper::build(resp));
+        return;
+    }
+    
+    // Phản hồi thành công cho người mời
+    map<string, string> resp;
+    resp["message"] = "Đã thêm " + invite_username + " vào nhóm";
+    resp["group_id"] = group_id_str;
+    resp["username"] = invite_username;
+    send_packet(client_socket, S_RESP_GROUP_INVITE, STATUS_OK, JsonHelper::build(resp));
+    
+    // Thông báo cho tất cả thành viên (bao gồm người mới được thêm)
+    for (int member_id : member_ids) {
+        pthread_mutex_lock(&db_mutex);
+        string member_name = db->getUsername(member_id);
+        pthread_mutex_unlock(&db_mutex);
+        
+        pthread_mutex_lock(&clients_mutex);
+        if (username_to_socket.count(member_name)) {
+            int member_socket = username_to_socket[member_name];
+            pthread_mutex_unlock(&clients_mutex);
+            
+            map<string, string> notify;
+            notify["username"] = invite_username;
+            notify["group_id"] = group_id_str;
+            notify["group_name"] = group_name;
+            notify["inviter"] = inviter_username;
+            send_packet(member_socket, S_NOTIFY_GROUP_JOIN, STATUS_OK, JsonHelper::build(notify));
+        } else {
+            pthread_mutex_unlock(&clients_mutex);
+        }
+    }
+    
+    cout << "✓ User " << inviter_username << " invited " << invite_username << " to group " << group_name << endl;
+}
+
 void handle_group_members(int client_socket, const map<string, string>& body) {
     string token = body.count("token") ? body.at("token") : "";
     string group_id_str = body.count("group_id") ? body.at("group_id") : "";
@@ -1416,6 +1517,9 @@ void* handle_client(void* arg) {
                 break;
             case C_REQ_GROUP_LEAVE:
                 handle_group_leave(client_socket, body);
+                break;
+            case C_REQ_GROUP_INVITE:
+                handle_group_invite(client_socket, body);
                 break;
             case C_REQ_GROUP_LIST:
                 handle_group_list(client_socket, body);

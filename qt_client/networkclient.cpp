@@ -553,6 +553,12 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
         case S_NOTIFY_GROUP_LEAVE:
             emit userLeftGroup(data.value("group_id"), data.value("username"));
             break;
+            
+        case S_RESP_GROUP_INVITE: {
+            bool success = (header.status == STATUS_OK);
+            emit groupInviteResponse(success, data.value("message"));
+            break;
+        }
     }
 }
 
@@ -757,4 +763,13 @@ void NetworkClient::sendDeleteMessage(int messageId, const QString &chatType)
     body["message_id"] = QString::number(messageId);
     body["chat_type"] = chatType;  // "private" hoặc "group"
     sendPacket(C_REQ_DELETE_MESSAGE, body);
+}
+
+void NetworkClient::sendGroupInvite(const QString &groupId, const QString &username)
+{
+    QMap<QString, QString> body;
+    body["token"] = m_token;
+    body["group_id"] = groupId;
+    body["username"] = username;
+    sendPacket(C_REQ_GROUP_INVITE, body);
 }

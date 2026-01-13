@@ -78,6 +78,8 @@ public slots:
 private slots:
     void onViewGroupMembers();
     void onLeaveCurrentGroup();
+    void onInviteMemberToGroup();
+    void onGroupInviteResponse(bool success, const QString &message);
     void onGroupMembersReceived(const QString &groupId, const QString &groupName,
                                 const QList<QPair<QString, bool>> &members);
     
@@ -167,6 +169,12 @@ private:
     
     // Track last sent message bubble (for updating message_id)
     MessageBubble *m_lastSentBubble;
+    
+    // Store current group members for invite feature
+    QStringList m_currentGroupMembers;
+    
+    // Flag to show group members dialog
+    bool m_showGroupMembersDialog;
 };
 
 #endif // CHATWIDGET_H

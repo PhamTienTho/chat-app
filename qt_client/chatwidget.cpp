@@ -207,7 +207,7 @@ void MessageBubble::contextMenuEvent(QContextMenuEvent *event)
 // ===== End MessageBubble =====
 
 ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *parent)
-    : QWidget(parent), m_client(client), m_username(username), m_isChatWithGroup(false), m_lastSentBubble(nullptr)
+    : QWidget(parent), m_client(client), m_username(username), m_isChatWithGroup(false), m_lastSentBubble(nullptr), m_showGroupMembersDialog(false)
 {
     qDebug() << "ChatWidget constructor START, m_client=" << m_client;
     setupUI();
@@ -240,6 +240,7 @@ ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *
     connect(m_client, &NetworkClient::messageDeleted, this, &ChatWidget::onMessageDeleted);
     connect(m_client, &NetworkClient::privateMessageSent, this, &ChatWidget::onPrivateMessageSent);
     connect(m_client, &NetworkClient::groupMessageSent, this, &ChatWidget::onGroupMessageSent);
+    connect(m_client, &NetworkClient::groupInviteResponse, this, &ChatWidget::onGroupInviteResponse);
     
     // Initialize tracking variables
     m_currentOffset = 0;
@@ -504,14 +505,16 @@ void ChatWidget::setupUI()
         "QMenu { background-color: white; border: 1px solid #ddd; }"
         "QMenu::item { padding: 8px 20px; }"
         "QMenu::item:selected { background-color: #e3f2fd; }");
-    QAction *viewMembersAction = m_groupMenu->addAction("View Members");
+    QAction *viewMembersAction = m_groupMenu->addAction("Xem thành viên");
+    QAction *inviteMemberAction = m_groupMenu->addAction("Thêm bạn vào nhóm");
     m_groupMenu->addSeparator();
-    QAction *leaveGroupAction = m_groupMenu->addAction("Leave Group");
+    QAction *leaveGroupAction = m_groupMenu->addAction("Rời nhóm");
     
     m_groupMenuBtn->setMenu(m_groupMenu);
     headerLayout->addWidget(m_groupMenuBtn);
     
     connect(viewMembersAction, &QAction::triggered, this, &ChatWidget::onViewGroupMembers);
+    connect(inviteMemberAction, &QAction::triggered, this, &ChatWidget::onInviteMemberToGroup);
     connect(leaveGroupAction, &QAction::triggered, this, &ChatWidget::onLeaveCurrentGroup);
     
     chatLayout->addWidget(headerWidget);
@@ -817,6 +820,10 @@ void ChatWidget::onGroupSelected(QListWidgetItem *item)
         m_totalMessageCount = 0;
         m_loadMoreBtn->setVisible(false);
         m_client->sendChatHistoryGroup(m_currentTarget, 0, 10);
+        
+        // Request group members để cập nhật m_currentGroupMembers cho tính năng invite
+        m_currentGroupMembers.clear();
+        m_client->sendGroupMembers(m_currentTarget);
     }
 }
 
@@ -1296,6 +1303,7 @@ void ChatWidget::onViewGroupMembers()
     if (!m_isChatWithGroup || m_currentTarget.isEmpty()) {
         return;
     }
+    m_showGroupMembersDialog = true;  // Hiển thị dialog khi nhận response
     m_client->sendGroupMembers(m_currentTarget);
 }
 
@@ -1328,6 +1336,18 @@ void ChatWidget::onGroupMembersReceived(const QString &groupId, const QString &g
                                          const QList<QPair<QString, bool>> &members)
 {
     Q_UNUSED(groupId);
+    
+    // Lưu danh sách thành viên để sử dụng cho invite
+    m_currentGroupMembers.clear();
+    for (const auto &member : members) {
+        m_currentGroupMembers.append(member.first);
+    }
+    
+    // Chỉ hiển thị dialog khi user yêu cầu xem thành viên
+    if (!m_showGroupMembersDialog) {
+        return;
+    }
+    m_showGroupMembersDialog = false;  // Reset flag
     
     QString membersText = "<b>Members of \"" + groupName + "\":</b><br><br>";
     membersText += "<table style='width: 100%; border-collapse: collapse;'>";
@@ -1703,5 +1723,135 @@ void ChatWidget::onGroupMessageSent(int messageId, const QString &groupId)
     if (m_lastSentBubble && m_isChatWithGroup && m_currentTarget == groupId) {
         m_lastSentBubble->setMessageId(messageId);
         qDebug() << "Updated group message_id:" << messageId << "for group:" << groupId;
+    }
+}
+
+void ChatWidget::onInviteMemberToGroup()
+{
+    if (!m_isChatWithGroup || m_currentTarget.isEmpty()) {
+        QMessageBox::warning(this, "Lỗi", "Vui lòng chọn một nhóm chat trước.");
+        return;
+    }
+    
+    // Lấy danh sách bạn bè hiện tại
+    QStringList friends;
+    for (int i = 0; i < m_friendsList->count(); ++i) {
+        QString friendName = m_friendsList->item(i)->data(Qt::UserRole).toString();
+        // Loại bỏ những bạn bè đã có trong nhóm
+        if (!m_currentGroupMembers.contains(friendName)) {
+            friends.append(friendName);
+        }
+    }
+    
+    if (friends.isEmpty()) {
+        QMessageBox::information(this, "Thông báo", 
+            "Không có bạn bè nào có thể thêm vào nhóm.\n"
+            "Tất cả bạn bè của bạn đã là thành viên của nhóm này.");
+        return;
+    }
+    
+    // Tạo dialog chọn bạn bè
+    QDialog *dialog = new QDialog(this);
+    dialog->setWindowTitle("Thêm bạn vào nhóm");
+    dialog->setMinimumSize(300, 400);
+    
+    QVBoxLayout *layout = new QVBoxLayout(dialog);
+    
+    QLabel *label = new QLabel("Chọn bạn bè để thêm vào nhóm:", dialog);
+    layout->addWidget(label);
+    
+    QListWidget *friendList = new QListWidget(dialog);
+    friendList->setStyleSheet(
+        "QListWidget {"
+        "   border: 1px solid #ccc;"
+        "   border-radius: 5px;"
+        "   background-color: white;"
+        "}"
+        "QListWidget::item {"
+        "   padding: 10px;"
+        "   border-bottom: 1px solid #eee;"
+        "}"
+        "QListWidget::item:selected {"
+        "   background-color: #2196F3;"
+        "   color: white;"
+        "}"
+        "QListWidget::item:hover {"
+        "   background-color: #E3F2FD;"
+        "}"
+    );
+    
+    for (const QString &friendName : friends) {
+        QListWidgetItem *item = new QListWidgetItem(friendName);
+        item->setData(Qt::UserRole, friendName);
+        friendList->addItem(item);
+    }
+    layout->addWidget(friendList);
+    
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    QPushButton *addBtn = new QPushButton("Thêm", dialog);
+    QPushButton *cancelBtn = new QPushButton("Hủy", dialog);
+    
+    addBtn->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #4CAF50;"
+        "   color: white;"
+        "   border: none;"
+        "   padding: 8px 16px;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:hover {"
+        "   background-color: #45a049;"
+        "}"
+    );
+    
+    cancelBtn->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #f44336;"
+        "   color: white;"
+        "   border: none;"
+        "   padding: 8px 16px;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:hover {"
+        "   background-color: #da190b;"
+        "}"
+    );
+    
+    buttonLayout->addWidget(addBtn);
+    buttonLayout->addWidget(cancelBtn);
+    layout->addLayout(buttonLayout);
+    
+    connect(cancelBtn, &QPushButton::clicked, dialog, &QDialog::reject);
+    connect(addBtn, &QPushButton::clicked, [=]() {
+        QListWidgetItem *currentItem = friendList->currentItem();
+        if (!currentItem) {
+            QMessageBox::warning(dialog, "Lỗi", "Vui lòng chọn một người bạn để thêm.");
+            return;
+        }
+        QString selectedFriend = currentItem->data(Qt::UserRole).toString();
+        m_client->sendGroupInvite(m_currentTarget, selectedFriend);
+        dialog->accept();
+    });
+    
+    connect(friendList, &QListWidget::itemDoubleClicked, [=](QListWidgetItem *item) {
+        QString selectedFriend = item->data(Qt::UserRole).toString();
+        m_client->sendGroupInvite(m_currentTarget, selectedFriend);
+        dialog->accept();
+    });
+    
+    dialog->exec();
+    delete dialog;
+}
+
+void ChatWidget::onGroupInviteResponse(bool success, const QString &message)
+{
+    if (success) {
+        QMessageBox::information(this, "Thành công", message);
+        // Request cập nhật danh sách thành viên
+        if (m_isChatWithGroup && !m_currentTarget.isEmpty()) {
+            m_client->sendGroupMembers(m_currentTarget);
+        }
+    } else {
+        QMessageBox::warning(this, "Lỗi", message);
     }
 }

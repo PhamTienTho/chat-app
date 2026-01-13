@@ -47,6 +47,7 @@ public:
                         qint64 fileSize, const QByteArray &fileData);
     void sendFileDownload(const QString &fileName);
     void sendDeleteMessage(int messageId, const QString &chatType);  // "private" hoặc "group"
+    void sendGroupInvite(const QString &groupId, const QString &username);  // Mời bạn bè vào nhóm
     
     void setToken(const QString &token) { m_token = token; }
     QString getToken() const { return m_token; }
@@ -82,6 +83,7 @@ signals:
     void friendOffline(const QString &username);
     void userJoinedGroup(const QString &groupId, const QString &username);
     void userLeftGroup(const QString &groupId, const QString &username);
+    void groupInviteResponse(bool success, const QString &message);  // Phản hồi mời vào nhóm
 
     // Chat history
     void privateChatHistoryReceived(const QString &targetUsername, int totalCount, int offset,
