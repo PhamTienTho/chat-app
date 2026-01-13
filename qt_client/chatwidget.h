@@ -26,11 +26,21 @@ class MessageBubble : public QWidget
     Q_OBJECT
 public:
     MessageBubble(const QString &sender, const QString &message, const QString &time, 
-                  bool isMe, QWidget *parent = nullptr);
+                  bool isMe, int messageId = -1, QWidget *parent = nullptr);
     void setSeenStatus(bool seen);
+    int getMessageId() const { return m_messageId; }
+    void setMessageId(int id) { m_messageId = id; }
+    bool isMine() const { return m_isMe; }
+    
+signals:
+    void deleteRequested(int messageId);
+    
+protected:
+    void contextMenuEvent(QContextMenuEvent *event) override;
     
 private:
     bool m_isMe;
+    int m_messageId;
     QLabel *m_seenLabel;
 };
 
@@ -76,9 +86,9 @@ private slots:
     void onGroupListReceived(const QStringList &groups);
     void onAllGroupsReceived(const QList<QPair<QString, QString>> &groups);
     void onPendingRequestsReceived(const QStringList &requests);
-    void onPrivateMessage(const QString &from, const QString &message);
+    void onPrivateMessage(const QString &from, const QString &message, int messageId);
     void onGroupMessage(const QString &groupId, const QString &groupName,
-                       const QString &from, const QString &message);
+                       const QString &from, const QString &message, int messageId);
     void onFriendRequest(const QString &from);
     void onFriendAccepted(const QString &username);
     void onFriendOnline(const QString &username);
@@ -95,17 +105,27 @@ private slots:
     // Read status slot
     void onMessagesReadNotification(const QString &readerUsername);
     void onFileDownloadReceived(const QString &fileName, const QByteArray &fileData, qint64 fileSize);
+    
+    // Delete message slots
+    void onDeleteMessageRequested(int messageId);
+    void onDeleteMessageResponse(bool success, const QString &message, int messageId);
+    void onMessageDeleted(int messageId, const QString &chatType, const QString &groupId);
+    
+    // Message sent confirmation slots
+    void onPrivateMessageSent(int messageId, const QString &targetUsername);
+    void onGroupMessageSent(int messageId, const QString &groupId);
 
 private:
     void setupUI();
     void setupEmojiPicker();
-    void appendMessage(const QString &sender, const QString &message, bool isMe = false);
+    void appendMessage(const QString &sender, const QString &message, bool isMe = false, int messageId = -1);
     void prependMessage(const QString &sender, const QString &message, const QString &time, bool isMe = false);
     void showNotification(const QString &title, const QString &message);
     void onEmojiClicked(const QString &emoji);
     void toggleEmojiPicker();
     void loadChatHistory();
     QString formatFileSize(qint64 bytes);
+    void removeMessageBubbleById(int messageId);
     
     NetworkClient *m_client;
     QString m_username;
@@ -144,6 +164,9 @@ private:
     
     // File download path
     QString m_downloadPath;
+    
+    // Track last sent message bubble (for updating message_id)
+    MessageBubble *m_lastSentBubble;
 };
 
 #endif // CHATWIDGET_H

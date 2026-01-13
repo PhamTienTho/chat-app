@@ -202,6 +202,21 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
             }
             break;
             
+        case S_RESP_DELETE_MESSAGE: {
+            bool success = (header.status == STATUS_OK);
+            int messageId = data.value("message_id", "-1").toInt();
+            emit deleteMessageResponse(success, data.value("message"), messageId);
+            break;
+        }
+        
+        case S_NOTIFY_MESSAGE_DELETED: {
+            int messageId = data.value("message_id", "-1").toInt();
+            QString chatType = data.value("chat_type");
+            QString groupId = data.value("group_id", "");
+            emit messageDeleted(messageId, chatType, groupId);
+            break;
+        }
+            
         case S_RESP_GROUP_LIST: {
             QStringList groups;
             // Parse groups array from JSON
@@ -341,6 +356,16 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
                 while ((pos = listStr.indexOf("{", pos)) != -1) {
                     QMap<QString, QString> msg;
                     
+                    // Parse message_id (number, not string)
+                    int idPos = listStr.indexOf("\"message_id\":", pos);
+                    if (idPos != -1) {
+                        int idStart = idPos + 13;
+                        int idEnd = listStr.indexOf(',', idStart);
+                        if (idEnd != -1) {
+                            msg["message_id"] = listStr.mid(idStart, idEnd - idStart).trimmed();
+                        }
+                    }
+                    
                     int fromPos = listStr.indexOf("\"from_username\":", pos);
                     if (fromPos != -1) {
                         int fromStart = listStr.indexOf('"', fromPos + 16) + 1;
@@ -387,6 +412,16 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
                 int pos = 0;
                 while ((pos = listStr.indexOf("{", pos)) != -1) {
                     QMap<QString, QString> msg;
+                    
+                    // Parse message_id (number, not string)
+                    int idPos = listStr.indexOf("\"message_id\":", pos);
+                    if (idPos != -1) {
+                        int idStart = idPos + 13;
+                        int idEnd = listStr.indexOf(',', idStart);
+                        if (idEnd != -1) {
+                            msg["message_id"] = listStr.mid(idStart, idEnd - idStart).trimmed();
+                        }
+                    }
                     
                     int fromPos = listStr.indexOf("\"from_username\":", pos);
                     if (fromPos != -1) {
@@ -466,14 +501,30 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
             break;
         }
             
-        case S_NOTIFY_MSG_PRIVATE:
-            emit privateMessageReceived(data.value("from_username"), data.value("message"));
+        case S_NOTIFY_MSG_PRIVATE: {
+            int msgId = data.value("message_id", "0").toInt();
+            emit privateMessageReceived(data.value("from_username"), data.value("message"), msgId);
             break;
+        }
             
-        case S_NOTIFY_MSG_GROUP:
-            emit groupMessageReceived(data.value("group_id"), data.value("group_name"),
-                                     data.value("from_username"), data.value("message"));
+        case S_RESP_PRIVATE_MSG: {
+            int msgId = data.value("message_id", "0").toInt();
+            emit privateMessageSent(msgId, data.value("target_username"));
             break;
+        }
+            
+        case S_NOTIFY_MSG_GROUP: {
+            int msgId = data.value("message_id", "0").toInt();
+            emit groupMessageReceived(data.value("group_id"), data.value("group_name"),
+                                     data.value("from_username"), data.value("message"), msgId);
+            break;
+        }
+            
+        case S_RESP_GROUP_MSG: {
+            int msgId = data.value("message_id", "0").toInt();
+            emit groupMessageSent(msgId, data.value("group_id"));
+            break;
+        }
             
         case S_NOTIFY_FRIEND_REQ:
             emit friendRequestReceived(data.value("from_username"));
@@ -697,4 +748,13 @@ void NetworkClient::sendFileDownload(const QString &fileName)
     body["token"] = m_token;
     body["file_name"] = fileName;
     sendPacket(C_REQ_FILE_DOWNLOAD, body);
+}
+
+void NetworkClient::sendDeleteMessage(int messageId, const QString &chatType)
+{
+    QMap<QString, QString> body;
+    body["token"] = m_token;
+    body["message_id"] = QString::number(messageId);
+    body["chat_type"] = chatType;  // "private" hoặc "group"
+    sendPacket(C_REQ_DELETE_MESSAGE, body);
 }

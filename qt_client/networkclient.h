@@ -46,6 +46,7 @@ public:
     void sendFileUpload(const QString &target, bool isGroup, const QString &fileName, 
                         qint64 fileSize, const QByteArray &fileData);
     void sendFileDownload(const QString &fileName);
+    void sendDeleteMessage(int messageId, const QString &chatType);  // "private" hoặc "group"
     
     void setToken(const QString &token) { m_token = token; }
     QString getToken() const { return m_token; }
@@ -70,9 +71,11 @@ signals:
     void pendingRequestsReceived(const QStringList &requests);
     
     // Notifications
-    void privateMessageReceived(const QString &from, const QString &message);
+    void privateMessageReceived(const QString &from, const QString &message, int messageId);
+    void privateMessageSent(int messageId, const QString &targetUsername);  // Xác nhận tin nhắn private đã gửi
     void groupMessageReceived(const QString &groupId, const QString &groupName, 
-                              const QString &from, const QString &message);
+                              const QString &from, const QString &message, int messageId);
+    void groupMessageSent(int messageId, const QString &groupId);  // Xác nhận tin nhắn nhóm đã gửi
     void friendRequestReceived(const QString &from);
     void friendAccepted(const QString &username);
     void friendOnline(const QString &username);
@@ -92,6 +95,10 @@ signals:
     
     // File operations
     void fileDownloadReceived(const QString &fileName, const QByteArray &fileData, qint64 fileSize);
+    
+    // Delete message
+    void deleteMessageResponse(bool success, const QString &message, int messageId);
+    void messageDeleted(int messageId, const QString &chatType, const QString &groupId);
 
 private slots:
     void onReadyRead();

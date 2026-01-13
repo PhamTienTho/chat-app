@@ -47,6 +47,7 @@
 // ===== NHÓM CHAT 1-1 (4xx) =====
 #define C_REQ_MSG_PRIVATE   401   // Client gửi tin nhắn 1-1 (FC03)
 #define S_NOTIFY_MSG_PRIVATE 402  // Server chuyển tiếp tin nhắn 1-1
+#define S_RESP_PRIVATE_MSG   403  // Server xác nhận tin nhắn đã gửi (trả về message_id)
 
 // ===== NHÓM CHAT NHÓM (5xx) =====
 #define C_REQ_GROUP_CREATE  501   // Client yêu cầu tạo nhóm mới
@@ -61,6 +62,7 @@
 #define S_RESP_GROUP_LIST   510   // Server trả về danh sách nhóm
 #define C_REQ_GROUP_MEMBERS 511   // Client yêu cầu danh sách thành viên nhóm
 #define S_RESP_GROUP_MEMBERS 512  // Server trả về danh sách thành viên nhóm
+#define S_RESP_GROUP_MSG     515  // Server xác nhận tin nhắn nhóm đã gửi (trả về message_id)
 
 #define C_REQ_ALL_GROUPS    513   // Client yêu cầu danh sách TẤT CẢ nhóm
 #define S_RESP_ALL_GROUPS   514   // Server trả về danh sách tất cả nhóm
@@ -71,6 +73,11 @@
 #define S_RESP_CHAT_HISTORY_GROUP   704   // Server trả về lịch sử chat nhóm
 #define C_REQ_MARK_MESSAGES_READ    705   // Client đánh dấu đã đọc tin nhắn (1-1)
 #define S_NOTIFY_MESSAGES_READ      706   // Server báo người gửi tin nhắn đã được đọc
+
+// ===== NHÓM XÓA TIN NHẮN (8xx) =====
+#define C_REQ_DELETE_MESSAGE        801   // Client yêu cầu xóa tin nhắn
+#define S_RESP_DELETE_MESSAGE       802   // Server phản hồi xóa tin nhắn
+#define S_NOTIFY_MESSAGE_DELETED    803   // Server báo người nhận tin nhắn đã bị xóa
 
 // ===== NHÓM CHIA SẺ FILE (6xx) =====
 #define C_REQ_FILE_UPLOAD   601   // Client "xin phép" được tải file lên

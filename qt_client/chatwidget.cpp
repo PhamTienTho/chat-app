@@ -19,11 +19,13 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QFileInfo>
+#include <QContextMenuEvent>
+#include <QClipboard>
 
 // ===== MessageBubble Implementation =====
 MessageBubble::MessageBubble(const QString &sender, const QString &message, const QString &time, 
-                             bool isMe, QWidget *parent)
-    : QWidget(parent), m_isMe(isMe), m_seenLabel(nullptr)
+                             bool isMe, int messageId, QWidget *parent)
+    : QWidget(parent), m_isMe(isMe), m_messageId(messageId), m_seenLabel(nullptr)
 {
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(10, 5, 10, 5);
@@ -96,7 +98,9 @@ MessageBubble::MessageBubble(const QString &sender, const QString &message, cons
         QLabel *messageLabel = new QLabel(message);
         messageLabel->setWordWrap(true);
         messageLabel->setStyleSheet("color: #1a1a1a; font-size: 15px;");
-        messageLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        // Don't use TextSelectableByMouse as it overrides context menu
+        // Store messageLabel for potential copy action in context menu
+        messageLabel->setObjectName("messageLabel");
         
         bubbleLayout->addWidget(senderLabel);
         bubbleLayout->addWidget(messageLabel);
@@ -147,10 +151,63 @@ void MessageBubble::setSeenStatus(bool seen)
         m_seenLabel->setVisible(seen);
     }
 }
+
+void MessageBubble::contextMenuEvent(QContextMenuEvent *event)
+{
+    QMenu menu(this);
+    
+    // Style menu for better visibility
+    menu.setStyleSheet(
+        "QMenu {"
+        "  background-color: #ffffff;"
+        "  border: 1px solid #d0d0d0;"
+        "  border-radius: 6px;"
+        "  padding: 5px 0px;"
+        "}"
+        "QMenu::item {"
+        "  padding: 8px 20px;"
+        "  color: #333333;"
+        "}"
+        "QMenu::item:selected {"
+        "  background-color: #e8e8e8;"
+        "  color: #000000;"
+        "}"
+        "QMenu::separator {"
+        "  height: 1px;"
+        "  background: #d0d0d0;"
+        "  margin: 5px 10px;"
+        "}"
+    );
+    
+    // Find message label to get text for copy
+    QLabel *messageLabel = findChild<QLabel*>("messageLabel");
+    QString messageText = messageLabel ? messageLabel->text() : "";
+    
+    // Add Copy action (no icon)
+    QAction *copyAction = nullptr;
+    if (!messageText.isEmpty()) {
+        copyAction = menu.addAction("Sao chép");
+    }
+    
+    // Add Delete action only for own messages with valid message_id (no icon)
+    QAction *deleteAction = nullptr;
+    if (m_isMe && m_messageId > 0) {
+        menu.addSeparator();
+        deleteAction = menu.addAction("Xóa tin nhắn");
+    }
+    
+    QAction *selectedAction = menu.exec(event->globalPos());
+    
+    if (selectedAction == copyAction && copyAction) {
+        QGuiApplication::clipboard()->setText(messageText);
+    } else if (selectedAction == deleteAction && deleteAction) {
+        emit deleteRequested(m_messageId);
+    }
+}
 // ===== End MessageBubble =====
 
 ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *parent)
-    : QWidget(parent), m_client(client), m_username(username), m_isChatWithGroup(false)
+    : QWidget(parent), m_client(client), m_username(username), m_isChatWithGroup(false), m_lastSentBubble(nullptr)
 {
     qDebug() << "ChatWidget constructor START, m_client=" << m_client;
     setupUI();
@@ -179,6 +236,10 @@ ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *
     connect(m_client, &NetworkClient::groupChatHistoryReceived, this, &ChatWidget::onGroupChatHistoryReceived);
     connect(m_client, &NetworkClient::messagesReadNotification, this, &ChatWidget::onMessagesReadNotification);
     connect(m_client, &NetworkClient::fileDownloadReceived, this, &ChatWidget::onFileDownloadReceived);
+    connect(m_client, &NetworkClient::deleteMessageResponse, this, &ChatWidget::onDeleteMessageResponse);
+    connect(m_client, &NetworkClient::messageDeleted, this, &ChatWidget::onMessageDeleted);
+    connect(m_client, &NetworkClient::privateMessageSent, this, &ChatWidget::onPrivateMessageSent);
+    connect(m_client, &NetworkClient::groupMessageSent, this, &ChatWidget::onGroupMessageSent);
     
     // Initialize tracking variables
     m_currentOffset = 0;
@@ -774,12 +835,15 @@ void ChatWidget::onSendClicked()
     m_messageInput->clear();
 }
 
-void ChatWidget::appendMessage(const QString &sender, const QString &message, bool isMe)
+void ChatWidget::appendMessage(const QString &sender, const QString &message, bool isMe, int messageId)
 {
     QString time = QDateTime::currentDateTime().toString("hh:mm");
     
-    // Create message bubble widget
-    MessageBubble *bubble = new MessageBubble(sender, message, time, isMe);
+    // Create message bubble widget with message_id
+    MessageBubble *bubble = new MessageBubble(sender, message, time, isMe, messageId);
+    
+    // Connect delete signal
+    connect(bubble, &MessageBubble::deleteRequested, this, &ChatWidget::onDeleteMessageRequested);
     
     // Create list item and set size
     QListWidgetItem *item = new QListWidgetItem(m_chatListWidget);
@@ -791,10 +855,14 @@ void ChatWidget::appendMessage(const QString &sender, const QString &message, bo
     // Scroll to bottom
     m_chatListWidget->scrollToBottom();
     
-    // Hide seen status and reset when sending a new message
-    if (isMe && !m_isChatWithGroup) {
-        m_messageSeenStatus[m_currentTarget] = false;
-        m_seenStatusLabel->setVisible(false);
+    // Track last sent bubble to update message_id later (only if we don't have it yet)
+    if (isMe && messageId < 0) {
+        m_lastSentBubble = bubble;
+        
+        if (!m_isChatWithGroup) {
+            m_messageSeenStatus[m_currentTarget] = false;
+            m_seenStatusLabel->setVisible(false);
+        }
     }
 }
 
@@ -1109,11 +1177,11 @@ void ChatWidget::onPendingRequestsReceived(const QStringList &requests)
     m_client->sendFriendList();
 }
 
-void ChatWidget::onPrivateMessage(const QString &from, const QString &message)
+void ChatWidget::onPrivateMessage(const QString &from, const QString &message, int messageId)
 {
     // If chatting with this person, show in chat and mark as read
     if (m_currentTarget == from && !m_isChatWithGroup) {
-        appendMessage(from, message, false);
+        appendMessage(from, message, false, messageId);
         // Mark message as read since we're viewing this chat
         m_client->sendMarkMessagesRead(from);
     } else {
@@ -1135,12 +1203,12 @@ void ChatWidget::onPrivateMessage(const QString &from, const QString &message)
 }
 
 void ChatWidget::onGroupMessage(const QString &groupId, const QString &groupName,
-                                const QString &from, const QString &message)
+                                const QString &from, const QString &message, int messageId)
 {
     if (from == m_username) return;  // Don't show own messages again
     
     if (m_currentTarget == groupId && m_isChatWithGroup) {
-        appendMessage(from, message, false);
+        appendMessage(from, message, false, messageId);
     } else {
         QString key = "group_" + groupId;
         QString html = m_chatHistory.value(key, "");
@@ -1433,6 +1501,7 @@ void ChatWidget::onPrivateChatHistoryReceived(const QString &targetUsername, int
             QString sender = msg["from_username"];
             QString text = msg["message"];
             QString time = msg["sent_at"];
+            int messageId = msg["message_id"].toInt();
             bool isMe = (sender == m_username);
             
             // Format time
@@ -1441,7 +1510,14 @@ void ChatWidget::onPrivateChatHistoryReceived(const QString &targetUsername, int
                 displayTime = time.mid(11, 5);  // Extract HH:MM
             }
             
-            prependMessage(sender, text, displayTime, isMe);
+            // Create bubble with message_id
+            MessageBubble *bubble = new MessageBubble(sender, text, displayTime, isMe, messageId);
+            connect(bubble, &MessageBubble::deleteRequested, this, &ChatWidget::onDeleteMessageRequested);
+            
+            QListWidgetItem *item = new QListWidgetItem(m_chatListWidget);
+            item->setSizeHint(bubble->sizeHint());
+            m_chatListWidget->addItem(item);
+            m_chatListWidget->setItemWidget(item, bubble);
         }
         m_chatListWidget->scrollToBottom();
     } else {
@@ -1451,6 +1527,7 @@ void ChatWidget::onPrivateChatHistoryReceived(const QString &targetUsername, int
             QString sender = msg["from_username"];
             QString text = msg["message"];
             QString time = msg["sent_at"];
+            int messageId = msg["message_id"].toInt();
             bool isMe = (sender == m_username);
             
             QString displayTime = time;
@@ -1458,8 +1535,10 @@ void ChatWidget::onPrivateChatHistoryReceived(const QString &targetUsername, int
                 displayTime = time.mid(11, 5);
             }
             
-            // Insert at top
-            MessageBubble *bubble = new MessageBubble(sender, text, displayTime, isMe);
+            // Insert at top with message_id
+            MessageBubble *bubble = new MessageBubble(sender, text, displayTime, isMe, messageId);
+            connect(bubble, &MessageBubble::deleteRequested, this, &ChatWidget::onDeleteMessageRequested);
+            
             QListWidgetItem *item = new QListWidgetItem();
             item->setSizeHint(bubble->sizeHint());
             m_chatListWidget->insertItem(i, item);
@@ -1491,6 +1570,7 @@ void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QStrin
             QString sender = msg["from_username"];
             QString text = msg["message"];
             QString time = msg["sent_at"];
+            int messageId = msg["message_id"].toInt();
             bool isMe = (sender == m_username);
             
             QString displayTime = time;
@@ -1498,7 +1578,14 @@ void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QStrin
                 displayTime = time.mid(11, 5);
             }
             
-            prependMessage(sender, text, displayTime, isMe);
+            // Create bubble with message_id
+            MessageBubble *bubble = new MessageBubble(sender, text, displayTime, isMe, messageId);
+            connect(bubble, &MessageBubble::deleteRequested, this, &ChatWidget::onDeleteMessageRequested);
+            
+            QListWidgetItem *item = new QListWidgetItem(m_chatListWidget);
+            item->setSizeHint(bubble->sizeHint());
+            m_chatListWidget->addItem(item);
+            m_chatListWidget->setItemWidget(item, bubble);
         }
         m_chatListWidget->scrollToBottom();
     } else {
@@ -1508,6 +1595,7 @@ void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QStrin
             QString sender = msg["from_username"];
             QString text = msg["message"];
             QString time = msg["sent_at"];
+            int messageId = msg["message_id"].toInt();
             bool isMe = (sender == m_username);
             
             QString displayTime = time;
@@ -1515,7 +1603,10 @@ void ChatWidget::onGroupChatHistoryReceived(const QString &groupId, const QStrin
                 displayTime = time.mid(11, 5);
             }
             
-            MessageBubble *bubble = new MessageBubble(sender, text, displayTime, isMe);
+            // Create bubble with message_id
+            MessageBubble *bubble = new MessageBubble(sender, text, displayTime, isMe, messageId);
+            connect(bubble, &MessageBubble::deleteRequested, this, &ChatWidget::onDeleteMessageRequested);
+            
             QListWidgetItem *item = new QListWidgetItem();
             item->setSizeHint(bubble->sizeHint());
             m_chatListWidget->insertItem(i, item);
@@ -1548,5 +1639,69 @@ void ChatWidget::onMessagesReadNotification(const QString &readerUsername)
     if (!m_isChatWithGroup && m_currentTarget == readerUsername) {
         m_seenStatusLabel->setText("✓✓ Đã xem");
         m_seenStatusLabel->setVisible(true);
+    }
+}
+
+void ChatWidget::onDeleteMessageRequested(int messageId)
+{
+    // Confirm deletion
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this, "Xác nhận xóa", "Bạn có chắc muốn xóa tin nhắn này?",
+        QMessageBox::Yes | QMessageBox::No);
+    
+    if (reply == QMessageBox::Yes) {
+        QString chatType = m_isChatWithGroup ? "group" : "private";
+        m_client->sendDeleteMessage(messageId, chatType);
+    }
+}
+
+void ChatWidget::onDeleteMessageResponse(bool success, const QString &message, int messageId)
+{
+    if (success) {
+        // Remove the message bubble from UI
+        removeMessageBubbleById(messageId);
+        qDebug() << "Message deleted successfully:" << messageId;
+    } else {
+        QMessageBox::warning(this, "Lỗi xóa tin nhắn", message);
+    }
+}
+
+void ChatWidget::onMessageDeleted(int messageId, const QString &chatType, const QString &groupId)
+{
+    Q_UNUSED(chatType);
+    Q_UNUSED(groupId);
+    
+    // Someone else deleted their message - remove from UI if visible
+    removeMessageBubbleById(messageId);
+    qDebug() << "Message deleted by sender:" << messageId;
+}
+
+void ChatWidget::removeMessageBubbleById(int messageId)
+{
+    for (int i = 0; i < m_chatListWidget->count(); i++) {
+        QListWidgetItem *item = m_chatListWidget->item(i);
+        MessageBubble *bubble = qobject_cast<MessageBubble*>(m_chatListWidget->itemWidget(item));
+        if (bubble && bubble->getMessageId() == messageId) {
+            delete m_chatListWidget->takeItem(i);
+            break;
+        }
+    }
+}
+
+void ChatWidget::onPrivateMessageSent(int messageId, const QString &targetUsername)
+{
+    // Update the last sent bubble's message_id if it's for the current chat
+    if (m_lastSentBubble && !m_isChatWithGroup && m_currentTarget == targetUsername) {
+        m_lastSentBubble->setMessageId(messageId);
+        qDebug() << "Updated private message_id:" << messageId << "for target:" << targetUsername;
+    }
+}
+
+void ChatWidget::onGroupMessageSent(int messageId, const QString &groupId)
+{
+    // Update the last sent bubble's message_id if it's for the current group chat
+    if (m_lastSentBubble && m_isChatWithGroup && m_currentTarget == groupId) {
+        m_lastSentBubble->setMessageId(messageId);
+        qDebug() << "Updated group message_id:" << messageId << "for group:" << groupId;
     }
 }

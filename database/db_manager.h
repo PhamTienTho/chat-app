@@ -75,9 +75,9 @@ public:
     vector<map<string, string>> getAllUsers();
     string getGroupName(int group_id);
     
-    // Message operations
-    bool savePrivateMessage(int from_user_id, int to_user_id, const string& message);
-    bool saveGroupMessage(int group_id, int from_user_id, const string& message);
+    // Message operations - return message_id on success, -1 on failure
+    int savePrivateMessage(int from_user_id, int to_user_id, const string& message);
+    int saveGroupMessage(int group_id, int from_user_id, const string& message);
     vector<map<string, string>> getPrivateMessages(int user_id1, int user_id2, int limit = 10, int offset = 0);
     vector<map<string, string>> getGroupMessages(int group_id, int limit = 10, int offset = 0);
     int getPrivateMessageCount(int user_id1, int user_id2);
@@ -85,6 +85,14 @@ public:
     bool markMessageAsRead(int message_id);
     bool markAllMessagesAsRead(int from_user_id, int to_user_id);  // Mark all messages from sender as read
     vector<int> getUnreadMessageSenders(int user_id);  // Get list of senders with unread messages
+    
+    // Delete message operations
+    bool deletePrivateMessage(int message_id, int user_id);  // Xóa tin nhắn private (chỉ người gửi)
+    bool deleteGroupMessage(int message_id, int user_id);    // Xóa tin nhắn group (chỉ người gửi)
+    int getPrivateMessageSender(int message_id);             // Lấy ID người gửi tin nhắn private
+    int getGroupMessageSender(int message_id);               // Lấy ID người gửi tin nhắn group
+    int getPrivateMessageReceiver(int message_id);           // Lấy ID người nhận tin nhắn private
+    int getGroupIdFromMessage(int message_id);               // Lấy group_id từ message_id
     
     // Utility
     string escapeString(const string& str);

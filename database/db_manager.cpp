@@ -548,28 +548,28 @@ string DBManager::getGroupName(int group_id) {
 
 // ===== MESSAGE OPERATIONS =====
 
-bool DBManager::savePrivateMessage(int from_user_id, int to_user_id, const string& message) {
+int DBManager::savePrivateMessage(int from_user_id, int to_user_id, const string& message) {
     string query = "INSERT INTO private_messages (from_user_id, to_user_id, message_text) VALUES (" +
                    to_string(from_user_id) + ", " + to_string(to_user_id) + ", '" +
                    escapeString(message) + "')";
     
     if (mysql_query(conn, query.c_str())) {
         printError();
-        return false;
+        return -1;
     }
-    return true;
+    return (int)mysql_insert_id(conn);
 }
 
-bool DBManager::saveGroupMessage(int group_id, int from_user_id, const string& message) {
+int DBManager::saveGroupMessage(int group_id, int from_user_id, const string& message) {
     string query = "INSERT INTO group_messages (group_id, from_user_id, message_text) VALUES (" +
                    to_string(group_id) + ", " + to_string(from_user_id) + ", '" +
                    escapeString(message) + "')";
     
     if (mysql_query(conn, query.c_str())) {
         printError();
-        return false;
+        return -1;
     }
-    return true;
+    return (int)mysql_insert_id(conn);
 }
 
 vector<map<string, string>> DBManager::getPrivateMessages(int user_id1, int user_id2, int limit, int offset) {
@@ -749,4 +749,90 @@ vector<map<string, string>> DBManager::getAllUsers() {
     }
     mysql_free_result(result);
     return users;
+}
+
+// ===== DELETE MESSAGE OPERATIONS =====
+
+bool DBManager::deletePrivateMessage(int message_id, int user_id) {
+    // Chỉ cho phép người gửi xóa tin nhắn
+    string query = "DELETE FROM private_messages WHERE message_id=" + to_string(message_id) + 
+                   " AND from_user_id=" + to_string(user_id);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return false;
+    }
+    return mysql_affected_rows(conn) > 0;
+}
+
+bool DBManager::deleteGroupMessage(int message_id, int user_id) {
+    // Chỉ cho phép người gửi xóa tin nhắn
+    string query = "DELETE FROM group_messages WHERE message_id=" + to_string(message_id) + 
+                   " AND from_user_id=" + to_string(user_id);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return false;
+    }
+    return mysql_affected_rows(conn) > 0;
+}
+
+int DBManager::getPrivateMessageSender(int message_id) {
+    string query = "SELECT from_user_id FROM private_messages WHERE message_id=" + to_string(message_id);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return -1;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int sender_id = row ? atoi(row[0]) : -1;
+    mysql_free_result(result);
+    return sender_id;
+}
+
+int DBManager::getGroupMessageSender(int message_id) {
+    string query = "SELECT from_user_id FROM group_messages WHERE message_id=" + to_string(message_id);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return -1;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int sender_id = row ? atoi(row[0]) : -1;
+    mysql_free_result(result);
+    return sender_id;
+}
+
+int DBManager::getPrivateMessageReceiver(int message_id) {
+    string query = "SELECT to_user_id FROM private_messages WHERE message_id=" + to_string(message_id);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return -1;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int receiver_id = row ? atoi(row[0]) : -1;
+    mysql_free_result(result);
+    return receiver_id;
+}
+
+int DBManager::getGroupIdFromMessage(int message_id) {
+    string query = "SELECT group_id FROM group_messages WHERE message_id=" + to_string(message_id);
+    
+    if (mysql_query(conn, query.c_str())) {
+        printError();
+        return -1;
+    }
+    
+    MYSQL_RES* result = mysql_store_result(conn);
+    MYSQL_ROW row = mysql_fetch_row(result);
+    int group_id = row ? atoi(row[0]) : -1;
+    mysql_free_result(result);
+    return group_id;
 }

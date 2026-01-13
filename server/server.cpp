@@ -789,10 +789,22 @@ void handle_msg_private(int client_socket, const map<string, string>& body) {
         return;
     }
     
-    // Save message to database
-    db->savePrivateMessage(user_id, target_user_id, message);
+    // Save message to database and get message_id
+    int message_id = db->savePrivateMessage(user_id, target_user_id, message);
     
     pthread_mutex_unlock(&db_mutex);
+    
+    if (message_id < 0) {
+        return;  // Save failed
+    }
+    
+    // Send confirmation back to sender with message_id
+    {
+        map<string, string> confirm;
+        confirm["message_id"] = to_string(message_id);
+        confirm["target_username"] = target_username;
+        send_packet(client_socket, S_RESP_PRIVATE_MSG, STATUS_OK, JsonHelper::build(confirm));
+    }
     
     // Send to target if online
     pthread_mutex_lock(&clients_mutex);
@@ -803,6 +815,7 @@ void handle_msg_private(int client_socket, const map<string, string>& body) {
         map<string, string> notify;
         notify["from_username"] = from_username;
         notify["message"] = message;
+        notify["message_id"] = to_string(message_id);
         send_packet(target_socket, S_NOTIFY_MSG_PRIVATE, STATUS_OK, 
                    JsonHelper::build(notify));
         
@@ -840,12 +853,24 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
     string from_username = db->getUsername(user_id);
     string group_name = db->getGroupName(group_id);
     
-    // Save message
-    db->saveGroupMessage(group_id, user_id, message);
+    // Save message and get message_id
+    int message_id = db->saveGroupMessage(group_id, user_id, message);
     
     // Get all members
     vector<int> member_ids = db->getGroupMembers(group_id);
     pthread_mutex_unlock(&db_mutex);
+    
+    if (message_id < 0) {
+        return;  // Save failed
+    }
+    
+    // Send confirmation back to sender with message_id
+    {
+        map<string, string> confirm;
+        confirm["message_id"] = to_string(message_id);
+        confirm["group_id"] = group_id_str;
+        send_packet(client_socket, S_RESP_GROUP_MSG, STATUS_OK, JsonHelper::build(confirm));
+    }
     
     cout << "📤 Broadcasting to " << member_ids.size() << " members" << endl;
     
@@ -866,6 +891,7 @@ void handle_msg_group(int client_socket, const map<string, string>& body) {
             notify["from_username"] = from_username;
             notify["group_id"] = group_id_str;
             notify["message"] = message;
+            notify["message_id"] = to_string(message_id);
             send_packet(member_socket, S_NOTIFY_MSG_GROUP, STATUS_OK, 
                        JsonHelper::build(notify));
         } else {
@@ -914,7 +940,8 @@ void handle_chat_history_private(int client_socket, const map<string, string>& b
     
     for (size_t i = 0; i < messages.size(); i++) {
         if (i > 0) json += ",";
-        json += "{\"from_username\":\"" + messages[i]["from_username"] + "\",";
+        json += "{\"message_id\":" + messages[i]["message_id"] + ",";
+        json += "\"from_username\":\"" + messages[i]["from_username"] + "\",";
         json += "\"message\":\"" + JsonHelper::escapeJson(messages[i]["message_text"]) + "\",";
         json += "\"sent_at\":\"" + messages[i]["sent_at"] + "\",";
         json += "\"is_read\":\"" + messages[i]["is_read"] + "\"}";
@@ -966,7 +993,8 @@ void handle_chat_history_group(int client_socket, const map<string, string>& bod
     
     for (size_t i = 0; i < messages.size(); i++) {
         if (i > 0) json += ",";
-        json += "{\"from_username\":\"" + messages[i]["from_username"] + "\",";
+        json += "{\"message_id\":" + messages[i]["message_id"] + ",";
+        json += "\"from_username\":\"" + messages[i]["from_username"] + "\",";
         json += "\"message\":\"" + JsonHelper::escapeJson(messages[i]["message_text"]) + "\",";
         json += "\"sent_at\":\"" + messages[i]["sent_at"] + "\"}";
     }
@@ -1037,6 +1065,113 @@ string base64_decode(const string &in) {
         }
     }
     return out;
+}
+
+// ===== DELETE MESSAGE =====
+void handle_delete_message(int client_socket, const map<string, string>& body) {
+    string token = body.count("token") ? body.at("token") : "";
+    string message_id_str = body.count("message_id") ? body.at("message_id") : "";
+    string chat_type = body.count("chat_type") ? body.at("chat_type") : "";  // "private" hoặc "group"
+    
+    int user_id;
+    pthread_mutex_lock(&db_mutex);
+    if (!db->verifyToken(token, user_id)) {
+        pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["message"] = "Invalid token";
+        send_packet(client_socket, S_RESP_DELETE_MESSAGE, STATUS_UNAUTHORIZED, JsonHelper::build(resp));
+        return;
+    }
+    pthread_mutex_unlock(&db_mutex);
+    
+    if (message_id_str.empty() || chat_type.empty()) {
+        map<string, string> resp;
+        resp["message"] = "Missing message_id or chat_type";
+        send_packet(client_socket, S_RESP_DELETE_MESSAGE, STATUS_BAD_REQUEST, JsonHelper::build(resp));
+        return;
+    }
+    
+    int message_id = stoi(message_id_str);
+    bool deleted = false;
+    
+    pthread_mutex_lock(&db_mutex);
+    
+    if (chat_type == "private") {
+        // Lấy thông tin người nhận trước khi xóa
+        int receiver_id = db->getPrivateMessageReceiver(message_id);
+        string receiver_username = db->getUsername(receiver_id);
+        
+        // Xóa tin nhắn (chỉ người gửi mới xóa được)
+        deleted = db->deletePrivateMessage(message_id, user_id);
+        pthread_mutex_unlock(&db_mutex);
+        
+        if (deleted && receiver_id != -1) {
+            // Thông báo cho người nhận (nếu online)
+            pthread_mutex_lock(&clients_mutex);
+            if (username_to_socket.count(receiver_username)) {
+                int receiver_socket = username_to_socket[receiver_username];
+                pthread_mutex_unlock(&clients_mutex);
+                
+                map<string, string> notify;
+                notify["message_id"] = message_id_str;
+                notify["chat_type"] = "private";
+                send_packet(receiver_socket, S_NOTIFY_MESSAGE_DELETED, STATUS_OK, JsonHelper::build(notify));
+            } else {
+                pthread_mutex_unlock(&clients_mutex);
+            }
+        }
+    } else if (chat_type == "group") {
+        // Lấy group_id trước khi xóa
+        int group_id = db->getGroupIdFromMessage(message_id);
+        vector<int> member_ids;
+        if (group_id != -1) {
+            member_ids = db->getGroupMembers(group_id);
+        }
+        
+        // Xóa tin nhắn
+        deleted = db->deleteGroupMessage(message_id, user_id);
+        pthread_mutex_unlock(&db_mutex);
+        
+        if (deleted && group_id != -1) {
+            // Thông báo cho tất cả thành viên nhóm (trừ người xóa)
+            pthread_mutex_lock(&db_mutex);
+            for (int member_id : member_ids) {
+                if (member_id == user_id) continue;
+                string member_username = db->getUsername(member_id);
+                pthread_mutex_unlock(&db_mutex);
+                
+                pthread_mutex_lock(&clients_mutex);
+                if (username_to_socket.count(member_username)) {
+                    int member_socket = username_to_socket[member_username];
+                    pthread_mutex_unlock(&clients_mutex);
+                    
+                    map<string, string> notify;
+                    notify["message_id"] = message_id_str;
+                    notify["chat_type"] = "group";
+                    notify["group_id"] = to_string(group_id);
+                    send_packet(member_socket, S_NOTIFY_MESSAGE_DELETED, STATUS_OK, JsonHelper::build(notify));
+                } else {
+                    pthread_mutex_unlock(&clients_mutex);
+                }
+                pthread_mutex_lock(&db_mutex);
+            }
+            pthread_mutex_unlock(&db_mutex);
+        }
+    } else {
+        pthread_mutex_unlock(&db_mutex);
+    }
+    
+    // Phản hồi cho client
+    map<string, string> resp;
+    if (deleted) {
+        resp["message"] = "Message deleted";
+        resp["message_id"] = message_id_str;
+        send_packet(client_socket, S_RESP_DELETE_MESSAGE, STATUS_OK, JsonHelper::build(resp));
+        cout << "✓ User " << user_id << " deleted message " << message_id << endl;
+    } else {
+        resp["message"] = "Failed to delete message (not found or not owner)";
+        send_packet(client_socket, S_RESP_DELETE_MESSAGE, STATUS_FORBIDDEN, JsonHelper::build(resp));
+    }
 }
 
 void handle_file_upload(int client_socket, const map<string, string>& body) {
@@ -1323,6 +1458,9 @@ void* handle_client(void* arg) {
                 break;
             case C_REQ_MARK_MESSAGES_READ:
                 handle_mark_messages_read(client_socket, body);
+                break;
+            case C_REQ_DELETE_MESSAGE:
+                handle_delete_message(client_socket, body);
                 break;
             case C_REQ_FILE_UPLOAD:
                 handle_file_upload(client_socket, body);
