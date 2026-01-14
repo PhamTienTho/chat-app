@@ -227,6 +227,7 @@ ChatWidget::ChatWidget(NetworkClient *client, const QString &username, QWidget *
     connect(m_client, &NetworkClient::privateMessageReceived, this, &ChatWidget::onPrivateMessage);
     connect(m_client, &NetworkClient::groupMessageReceived, this, &ChatWidget::onGroupMessage);
     connect(m_client, &NetworkClient::friendRequestReceived, this, &ChatWidget::onFriendRequest);
+    connect(m_client, &NetworkClient::friendAddResponse, this, &ChatWidget::onFriendAddResponse);
     connect(m_client, &NetworkClient::friendAccepted, this, &ChatWidget::onFriendAccepted);
     connect(m_client, &NetworkClient::friendOnline, this, &ChatWidget::onFriendOnline);
     connect(m_client, &NetworkClient::friendOffline, this, &ChatWidget::onFriendOffline);
@@ -1341,6 +1342,16 @@ void ChatWidget::onFriendAccepted(const QString &username)
     QMessageBox::information(this, "Kết bạn thành công", 
         username + " đã chấp nhận lời mời kết bạn của bạn!");
     m_client->sendFriendList();
+}
+
+void ChatWidget::onFriendAddResponse(bool success, const QString &message)
+{
+    if (!success) {
+        // Chỉ hiển thị thông báo khi có lỗi
+        QMessageBox::warning(this, "Lỗi", message);
+    }
+    // Khi thành công, không cần hiển thị thông báo vì user sẽ nhận được
+    // notification khi đối phương chấp nhận (onFriendAccepted)
 }
 
 void ChatWidget::onFriendOnline(const QString &username)

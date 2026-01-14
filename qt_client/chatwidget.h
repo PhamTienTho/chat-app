@@ -94,6 +94,7 @@ private slots:
     void onGroupMessage(const QString &groupId, const QString &groupName,
                        const QString &from, const QString &message, int messageId);
     void onFriendRequest(const QString &from);
+    void onFriendAddResponse(bool success, const QString &message);
     void onFriendAccepted(const QString &username);
     void onFriendOnline(const QString &username);
     void onFriendOffline(const QString &username);

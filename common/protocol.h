@@ -34,15 +34,16 @@
 
 // ===== NHÓM QUẢN LÝ BẠN BÈ (3xx) =====
 #define C_REQ_FRIEND_ADD        301   // Client gửi lời mời kết bạn (FC05)
-#define S_NOTIFY_FRIEND_REQ     302   // Server báo u5 biết u1 muốn kết bạn
-#define C_RESP_FRIEND_REQ       303   // Client (u5) phản hồi lời mời
-#define S_NOTIFY_FRIEND_ACCEPT  304   // Server báo u1 biết u5 đã đồng ý
-#define C_REQ_FRIEND_LIST       305   // Client yêu cầu danh sách bạn bè
-#define S_RESP_FRIEND_LIST      306   // Server trả về danh sách bạn bè
-#define C_REQ_PENDING_REQUESTS  307   // Client yêu cầu danh sách lời mời chờ
-#define S_RESP_PENDING_REQUESTS 308   // Server trả về danh sách lời mời chờ
-#define C_REQ_UNFRIEND          309   // Client yêu cầu hủy kết bạn
-#define S_RESP_UNFRIEND         310   // Server phản hồi hủy kết bạn
+#define S_RESP_FRIEND_ADD       302   // Server phản hồi yêu cầu kết bạn (success/error)
+#define S_NOTIFY_FRIEND_REQ     303   // Server báo u5 biết u1 muốn kết bạn
+#define C_RESP_FRIEND_REQ       304   // Client (u5) phản hồi lời mời
+#define S_NOTIFY_FRIEND_ACCEPT  305   // Server báo u1 biết u5 đã đồng ý
+#define C_REQ_FRIEND_LIST       306   // Client yêu cầu danh sách bạn bè
+#define S_RESP_FRIEND_LIST      307   // Server trả về danh sách bạn bè
+#define C_REQ_PENDING_REQUESTS  308   // Client yêu cầu danh sách lời mời chờ
+#define S_RESP_PENDING_REQUESTS 309   // Server trả về danh sách lời mời chờ
+#define C_REQ_UNFRIEND          310   // Client yêu cầu hủy kết bạn
+#define S_RESP_UNFRIEND         311   // Server phản hồi hủy kết bạn
 
 // ===== NHÓM CHAT 1-1 (4xx) =====
 #define C_REQ_MSG_PRIVATE   401   // Client gửi tin nhắn 1-1 (FC03)

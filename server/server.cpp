@@ -260,18 +260,36 @@ void handle_friend_add(int client_socket, const map<string, string>& body) {
     int target_id = db->getUserId(target_username);
     if (target_id == -1) {
         pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["error"] = "User not found";
+        resp["message"] = "Người dùng '" + target_username + "' không tồn tại";
+        send_packet(client_socket, S_RESP_FRIEND_ADD, STATUS_NOT_FOUND, 
+                   JsonHelper::build(resp));
+        cout << "⚠ Friend request failed: User '" << target_username << "' not found" << endl;
         return;
     }
     
     // Không thể tự kết bạn với chính mình
     if (target_id == user_id) {
         pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["error"] = "Invalid request";
+        resp["message"] = "Không thể kết bạn với chính mình";
+        send_packet(client_socket, S_RESP_FRIEND_ADD, STATUS_BAD_REQUEST, 
+                   JsonHelper::build(resp));
+        cout << "⚠ Friend request failed: Cannot add yourself" << endl;
         return;
     }
     
     // Kiểm tra đã là bạn chưa
     if (db->areFriends(user_id, target_id)) {
         pthread_mutex_unlock(&db_mutex);
+        map<string, string> resp;
+        resp["error"] = "Already friends";
+        resp["message"] = "Bạn đã là bạn bè với " + target_username;
+        send_packet(client_socket, S_RESP_FRIEND_ADD, STATUS_CONFLICT, 
+                   JsonHelper::build(resp));
+        cout << "⚠ Friend request failed: Already friends" << endl;
         return;
     }
     
@@ -294,6 +312,12 @@ void handle_friend_add(int client_socket, const map<string, string>& body) {
     } else {
         pthread_mutex_unlock(&clients_mutex);
     }
+    
+    // Gửi response thành công về cho người gửi lời mời
+    map<string, string> resp;
+    resp["message"] = "Đã gửi lời mời kết bạn đến " + target_username;
+    send_packet(client_socket, S_RESP_FRIEND_ADD, STATUS_OK, 
+               JsonHelper::build(resp));
     
     cout << "✓ Friend request: " << from_username << " -> " << target_username << endl;
 }

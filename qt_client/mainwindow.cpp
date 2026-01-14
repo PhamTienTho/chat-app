@@ -15,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
     
     // Default server settings
     // Thay IP này bằng Windows IP của máy server
-    m_serverHost = "192.168.1.100";  // ← SỬA IP NÀY
+    m_serverHost = "127.0.0.1";  // ← SỬA IP NÀY
     m_serverPort = 8888;
     
     // Create network client

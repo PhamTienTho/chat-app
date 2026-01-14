@@ -79,6 +79,7 @@ signals:
                               const QString &from, const QString &message, int messageId);
     void groupMessageSent(int messageId, const QString &groupId);  // Xác nhận tin nhắn nhóm đã gửi
     void friendRequestReceived(const QString &from);
+    void friendAddResponse(bool success, const QString &message);  // Phản hồi gửi lời mời kết bạn
     void friendAccepted(const QString &username);
     void friendOnline(const QString &username);
     void friendOffline(const QString &username);

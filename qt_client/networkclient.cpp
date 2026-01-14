@@ -588,6 +588,12 @@ void NetworkClient::processPacket(const PacketHeader &header, const QByteArray &
             break;
         }
             
+        case S_RESP_FRIEND_ADD: {
+            bool success = (header.status == STATUS_OK);
+            emit friendAddResponse(success, data.value("message", ""));
+            break;
+        }
+            
         case S_NOTIFY_FRIEND_REQ:
             emit friendRequestReceived(data.value("from_username"));
             break;
